@@ -21,8 +21,8 @@ A full-stack recurring todo list application with expiry highlighting, completio
 - **Urgency highlighting** — items colour-coded by days until due (see table below)
 - **Completion history** — every completion is recorded with a timestamp, optional note, and a snapshot of the due date at the time of completion
 - **Undo completion** — delete the most recent completion to revert an item's due date back to what it was
-- **Calendar view** — monthly grid showing upcoming items and completions; items are colour-coded by urgency, completed items are shown with a strikethrough ✓ chip
-- **Create from calendar** — add items directly from the calendar, with a list selector and due date pre-filled from the clicked day
+- **Calendar view** — monthly grid showing upcoming items and completions; items are colour-coded by urgency, completed items are shown with a strikethrough ✓ chip; **Today** button snaps back to the current month; click the month/year heading to jump to any month via a quick picker
+- **Create from calendar** — add items directly from the calendar, with a list selector and due date pre-filled from the clicked day; `dayOfMonth` / `weekdayMask` defaults are auto-derived from the selected due date when choosing `monthly_on_day` or `weekly_on_day` recurrence
 - **Hover detail popup** — hover over any calendar chip to see the full title, list, description, recurrence info, and last completion time
 - **iCal / Google Calendar** — subscribe to a live `.ics` feed or download a snapshot; works with Google Calendar, Apple Calendar, and Outlook
 - **Completion history view** — per-item history page showing all past completions with the ability to undo any of them
@@ -72,8 +72,11 @@ npm run dev:web
 # Run all unit + integration tests
 npm test
 
-# Run with coverage report
+# Run with coverage report (API — target: 100% all metrics)
 npm run test:coverage --workspace=packages/api
+
+# Run with coverage report (Web — target: 100% all metrics)
+npm run test:coverage --workspace=packages/web
 
 # Lint (ESLint)
 npm run lint
@@ -216,14 +219,14 @@ Items in list views and the calendar are colour-coded based on the number of day
 
 ## Frontend Routes
 
-| Path               | View             | Description                                                    |
-| ------------------ | ---------------- | -------------------------------------------------------------- |
-| `/login`           | `LoginView`      | Sign-in page (public)                                          |
-| `/register`        | `RegisterView`   | Account creation (public)                                      |
-| `/`                | `DashboardView`  | All lists; create / delete lists                               |
-| `/lists/:listId`   | `ListDetailView` | Items in a list; add / edit / complete / archive items         |
-| `/calendar`        | `CalendarView`   | Monthly calendar grid; create items; hover popups; iCal export |
-| `/history/:itemId` | `HistoryView`    | Completion history for an item with undo support               |
+| Path               | View             | Description                                                                                                   |
+| ------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/login`           | `LoginView`      | Sign-in page (public)                                                                                         |
+| `/register`        | `RegisterView`   | Account creation (public)                                                                                     |
+| `/`                | `DashboardView`  | All lists; create / delete lists                                                                              |
+| `/lists/:listId`   | `ListDetailView` | Items in a list; add / edit / complete / archive items                                                        |
+| `/calendar`        | `CalendarView`   | Monthly calendar grid; Today button; month/year picker; create items from any cell; hover popups; iCal export |
+| `/history/:itemId` | `HistoryView`    | Completion history for an item with undo support                                                              |
 
 Navigation is context-aware: if you open a list from the calendar, the back button returns to the calendar rather than the dashboard.
 
