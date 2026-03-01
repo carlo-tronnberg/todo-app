@@ -1,10 +1,20 @@
 <template>
   <div>
-    <!-- Header: navigation + Add Item + iCal button -->
+    <!-- Header: navigation + Today + Add Item + iCal button -->
     <div class="cal-header">
-      <button class="btn btn-secondary" @click="prevMonth">‹</button>
-      <h1>{{ format(currentMonth, 'MMMM yyyy') }}</h1>
-      <button class="btn btn-secondary" @click="nextMonth">›</button>
+      <button class="btn btn-secondary nav-btn" @click="prevMonth">‹</button>
+      <button ref="headingBtn" class="cal-heading-btn" @click="toggleMonthPicker">
+        {{ format(currentMonth, 'MMMM yyyy') }}
+        <span class="cal-heading-caret">▾</span>
+      </button>
+      <button class="btn btn-secondary nav-btn" @click="nextMonth">›</button>
+      <button
+        class="btn btn-secondary today-btn"
+        :class="{ 'today-btn-active': isCurrentMonth }"
+        @click="goToToday"
+      >
+        Today
+      </button>
       <button class="btn btn-primary add-btn" @click="openAddModal(null)">+ Add Item</button>
       <button
         class="btn btn-secondary ical-btn"
@@ -14,6 +24,33 @@
         📅 iCal
       </button>
     </div>
+
+    <!-- Month/Year picker popup -->
+    <Teleport to="body">
+      <div
+        v-if="showMonthPicker"
+        ref="monthPickerEl"
+        class="month-picker"
+        :style="monthPickerStyle"
+      >
+        <div class="month-picker-year-row">
+          <button class="month-picker-year-nav" @click="pickerYear--">‹</button>
+          <span class="month-picker-year-label">{{ pickerYear }}</span>
+          <button class="month-picker-year-nav" @click="pickerYear++">›</button>
+        </div>
+        <div class="month-picker-grid">
+          <button
+            v-for="(name, idx) in MONTH_NAMES"
+            :key="idx"
+            class="month-picker-btn"
+            :class="{ active: isPickerSelected(idx) }"
+            @click="selectPickerMonth(idx)"
+          >
+            {{ name }}
+          </button>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Calendar grid -->
     <div class="cal-grid">
@@ -281,7 +318,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import {
     format,
     startOfMonth,
@@ -306,6 +343,80 @@
   const items = ref<CalendarItem[]>([])
   const completionList = ref<CalendarCompletion[]>([])
   const weekDayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  // ── Today button ───────────────────────────────────────────────────────────
+  const isCurrentMonth = computed(() => {
+    const now = startOfMonth(new Date())
+    return (
+      currentMonth.value.getFullYear() === now.getFullYear() &&
+      currentMonth.value.getMonth() === now.getMonth()
+    )
+  })
+
+  function goToToday() {
+    currentMonth.value = startOfMonth(new Date())
+  }
+
+  // ── Month/Year picker ──────────────────────────────────────────────────────
+  const MONTH_NAMES = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
+  const showMonthPicker = ref(false)
+  const pickerYear = ref(new Date().getFullYear())
+  const headingBtn = ref<HTMLButtonElement | null>(null)
+  const monthPickerEl = ref<HTMLDivElement | null>(null)
+  const monthPickerStyle = ref<{ left: string; top: string; transform: string }>({
+    left: '0px',
+    top: '0px',
+    transform: 'translateX(-50%)',
+  })
+
+  function toggleMonthPicker() {
+    if (showMonthPicker.value) {
+      showMonthPicker.value = false
+      return
+    }
+    pickerYear.value = currentMonth.value.getFullYear()
+    if (headingBtn.value) {
+      const rect = headingBtn.value.getBoundingClientRect()
+      monthPickerStyle.value = {
+        left: rect.left + rect.width / 2 + 'px',
+        top: rect.bottom + 8 + 'px',
+        transform: 'translateX(-50%)',
+      }
+    }
+    showMonthPicker.value = true
+  }
+
+  function isPickerSelected(monthIdx: number): boolean {
+    return (
+      currentMonth.value.getMonth() === monthIdx &&
+      currentMonth.value.getFullYear() === pickerYear.value
+    )
+  }
+
+  function selectPickerMonth(monthIdx: number) {
+    currentMonth.value = new Date(pickerYear.value, monthIdx, 1)
+    showMonthPicker.value = false
+  }
+
+  function handleDocumentClick(e: MouseEvent) {
+    if (!showMonthPicker.value) return
+    const target = e.target as Node
+    if (headingBtn.value?.contains(target) || monthPickerEl.value?.contains(target)) return
+    showMonthPicker.value = false
+  }
 
   // ── Lists ──────────────────────────────────────────────────────────────────
   const allLists = ref<TodoList[]>([])
@@ -346,9 +457,27 @@
     // Pre-fill due date if a specific day was clicked
     if (date) {
       addForm.value.dueDate = format(date, 'yyyy-MM-dd')
+      // Default dayOfMonth to the clicked day so monthly recurrence makes sense
+      addForm.value.dayOfMonth = date.getDate()
     }
     showAddModal.value = true
   }
+
+  // When switching recurrence type, default derived fields from the selected due date
+  watch(
+    () => addForm.value.recurrenceType,
+    (type) => {
+      if (!addForm.value.dueDate) return
+      const d = new Date(addForm.value.dueDate)
+      if (isNaN(d.getTime())) return
+      if (type === 'monthly_on_day') {
+        addForm.value.dayOfMonth = d.getDate()
+      } else if (type === 'weekly_on_day') {
+        // Set bitmask to the weekday of the selected due date (Sun=1, Mon=2, …)
+        addForm.value.weekdayMask = 1 << d.getDay()
+      }
+    }
+  )
 
   function closeAddModal() {
     showAddModal.value = false
@@ -514,9 +643,15 @@
   }
 
   onMounted(async () => {
+    document.addEventListener('click', handleDocumentClick, true)
     allLists.value = await listsApi.getAll()
     await loadData()
   })
+
+  onUnmounted(() => {
+    document.removeEventListener('click', handleDocumentClick, true)
+  })
+
   watch(currentMonth, loadData)
 
   function prevMonth() {
@@ -589,12 +724,128 @@
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
   }
+  .nav-btn {
+    font-size: 1.1rem;
+    padding: 0.3rem 0.7rem;
+  }
+  /* Month/Year heading button */
+  .cal-heading-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0.3rem 0.65rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+  }
+  .cal-heading-btn:hover {
+    background: var(--color-surface-sunken);
+    border-color: var(--color-border);
+  }
+  .cal-heading-caret {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+  }
+  /* Today button – dimmed when already on current month */
+  .today-btn {
+    font-size: 0.82rem;
+  }
+  .today-btn-active {
+    opacity: 0.45;
+    pointer-events: none;
+  }
   .add-btn {
     font-size: 0.85rem;
   }
   .ical-btn {
     margin-left: auto;
     font-size: 0.85rem;
+  }
+
+  /* ── Month/Year picker ────────────────────────────────────── */
+  .month-picker {
+    position: fixed;
+    z-index: 600;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    padding: 0.75rem;
+    min-width: 220px;
+    animation: mp-in 0.1s ease;
+  }
+  @keyframes mp-in {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+  .month-picker-year-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+  .month-picker-year-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-text);
+  }
+  .month-picker-year-nav {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+  }
+  .month-picker-year-nav:hover {
+    background: var(--color-surface-sunken);
+  }
+  .month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .month-picker-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0.35rem 0;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--color-text);
+    text-align: center;
+    transition:
+      background 0.12s,
+      border-color 0.12s;
+  }
+  .month-picker-btn:hover {
+    background: var(--color-surface-sunken);
+    border-color: var(--color-border);
+  }
+  .month-picker-btn.active {
+    background: var(--color-primary);
+    color: var(--color-primary-text, #fff);
+    border-color: var(--color-primary);
+    font-weight: 600;
   }
 
   /* ── Calendar grid ────────────────────────────────────────── */

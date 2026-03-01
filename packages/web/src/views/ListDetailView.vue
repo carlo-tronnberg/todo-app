@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { listsApi } from '../api/lists.api'
   import { useItemsStore } from '../stores/items.store'
@@ -153,6 +153,21 @@
   })
 
   const form = ref(BLANK_FORM())
+
+  // When switching recurrence type, default derived fields from the selected due date
+  watch(
+    () => form.value.recurrenceType,
+    (type) => {
+      if (!form.value.dueDate) return
+      const d = new Date(form.value.dueDate)
+      if (isNaN(d.getTime())) return
+      if (type === 'monthly_on_day') {
+        form.value.dayOfMonth = d.getDate()
+      } else if (type === 'weekly_on_day') {
+        form.value.weekdayMask = 1 << d.getDay()
+      }
+    }
+  )
 
   const items = computed(() => itemsStore.getItems(listId))
   const sortedItems = computed(() =>
