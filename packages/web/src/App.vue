@@ -7,10 +7,13 @@
         <div class="nav-links">
           <router-link to="/">Lists</router-link>
           <router-link to="/calendar">Calendar</router-link>
+          <router-link to="/audit">Log</router-link>
         </div>
 
         <div class="nav-user">
-          <span class="nav-username hide-mobile">{{ auth.user?.username }}</span>
+          <router-link to="/profile" class="nav-username hide-mobile">{{
+            auth.user?.username
+          }}</router-link>
 
           <!-- Dark mode toggle -->
           <button
@@ -23,7 +26,7 @@
             <span v-else>🌙</span>
           </button>
 
-          <button class="btn-ghost" @click="auth.logout()">Logout</button>
+          <button class="btn-ghost" @click="handleLogout">Logout</button>
         </div>
       </div>
     </nav>
@@ -36,15 +39,22 @@
 
 <script setup lang="ts">
   import { onMounted } from 'vue'
+  import { useRouter } from 'vue-router'
   import { useAuthStore } from './stores/auth.store'
   import { useTheme } from './composables/useTheme'
 
   const auth = useAuthStore()
   const theme = useTheme()
+  const router = useRouter()
 
   onMounted(() => {
     auth.fetchMe()
   })
+
+  function handleLogout() {
+    auth.logout()
+    router.push('/login')
+  }
 </script>
 
 <style scoped>
@@ -99,6 +109,11 @@
   .nav-username {
     font-size: 0.9rem;
     opacity: 0.9;
+    color: white;
+    text-decoration: none;
+  }
+  .nav-username:hover {
+    text-decoration: underline;
   }
 
   /* Dark mode toggle icon button */

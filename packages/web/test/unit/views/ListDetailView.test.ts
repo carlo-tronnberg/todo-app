@@ -67,6 +67,7 @@ beforeEach(() => {
   pinia = createPinia()
   setActivePinia(pinia)
   vi.clearAllMocks()
+  mockListsApi.getAll.mockResolvedValue([])
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2024-06-15T12:00:00Z'))
 })

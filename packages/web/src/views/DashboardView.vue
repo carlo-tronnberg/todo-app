@@ -17,6 +17,17 @@
         <div class="list-card-body" @click="$router.push(`/lists/${list.id}`)">
           <h2 class="list-title">{{ list.title }}</h2>
           <p v-if="list.description" class="list-desc">{{ list.description }}</p>
+          <div class="list-stats">
+            <span v-if="list.uncompletedThisMonth" class="stat-badge">
+              {{ list.uncompletedThisMonth }} due this month
+            </span>
+          </div>
+          <div v-if="list.upcomingItems?.length" class="upcoming-items">
+            <div v-for="item in list.upcomingItems" :key="item.id" class="upcoming-chip">
+              <span class="upcoming-title">{{ item.title }}</span>
+              <span class="upcoming-date">{{ formatDate(item.dueDate) }}</span>
+            </div>
+          </div>
           <span class="list-date">Created {{ formatDate(list.createdAt) }}</span>
         </div>
 
@@ -37,7 +48,7 @@
     </div>
 
     <!-- ── Create Modal ───────────────────────────────────────────── -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click.self="closeModals">
+    <div v-if="showCreateModal" class="modal-backdrop">
       <div class="modal card">
         <h2>New List</h2>
         <form @submit.prevent="handleCreateList">
@@ -56,6 +67,17 @@
             <label class="form-label">Description (optional)</label>
             <input v-model="form.description" type="text" class="form-input" maxlength="1000" />
           </div>
+          <div class="form-group">
+            <label class="form-label">Default currency (optional)</label>
+            <input
+              v-model="form.defaultCurrency"
+              type="text"
+              maxlength="3"
+              class="form-input"
+              placeholder="USD"
+              style="text-transform: uppercase; max-width: 80px"
+            />
+          </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModals">Cancel</button>
             <button type="submit" class="btn btn-primary" :disabled="!form.title.trim()">
@@ -67,7 +89,7 @@
     </div>
 
     <!-- ── Edit Modal ─────────────────────────────────────────────── -->
-    <div v-if="showEditModal" class="modal-backdrop" @click.self="closeModals">
+    <div v-if="showEditModal" class="modal-backdrop">
       <div class="modal card">
         <h2>Edit List</h2>
         <form @submit.prevent="handleUpdateList">
@@ -86,6 +108,17 @@
             <label class="form-label">Description (optional)</label>
             <input v-model="form.description" type="text" class="form-input" maxlength="1000" />
           </div>
+          <div class="form-group">
+            <label class="form-label">Default currency (optional)</label>
+            <input
+              v-model="form.defaultCurrency"
+              type="text"
+              maxlength="3"
+              class="form-input"
+              placeholder="USD"
+              style="text-transform: uppercase; max-width: 80px"
+            />
+          </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModals">Cancel</button>
             <button type="submit" class="btn btn-primary" :disabled="!form.title.trim()">
@@ -97,7 +130,7 @@
     </div>
 
     <!-- ── Delete Confirmation Modal ─────────────────────────────── -->
-    <div v-if="showDeleteModal && deletingList" class="modal-backdrop" @click.self="closeModals">
+    <div v-if="showDeleteModal && deletingList" class="modal-backdrop">
       <div class="modal modal--narrow card">
         <div class="delete-icon">🗑</div>
         <h2>Delete "{{ deletingList.title }}"?</h2>
@@ -133,7 +166,7 @@
   const deletingList = ref<TodoList | null>(null)
   const deleting = ref(false)
 
-  const form = ref({ title: '', description: '' })
+  const form = ref({ title: '', description: '', defaultCurrency: '' })
 
   const createTitleInput = ref<HTMLInputElement | null>(null)
   const editTitleInput = ref<HTMLInputElement | null>(null)
@@ -153,19 +186,23 @@
     editingList.value = null
     deletingList.value = null
     deleting.value = false
-    form.value = { title: '', description: '' }
+    form.value = { title: '', description: '', defaultCurrency: '' }
   }
 
   // ── Open modals ──────────────────────────────────────────────────────────────
   function openCreate() {
-    form.value = { title: '', description: '' }
+    form.value = { title: '', description: '', defaultCurrency: '' }
     showCreateModal.value = true
     nextTick(() => createTitleInput.value?.focus())
   }
 
   function openEdit(list: TodoList) {
     editingList.value = list
-    form.value = { title: list.title, description: list.description ?? '' }
+    form.value = {
+      title: list.title,
+      description: list.description ?? '',
+      defaultCurrency: list.defaultCurrency ?? '',
+    }
     showEditModal.value = true
     nextTick(() => editTitleInput.value?.focus())
   }
@@ -178,7 +215,11 @@
   // ── Actions ──────────────────────────────────────────────────────────────────
   async function handleCreateList() {
     if (!form.value.title.trim()) return
-    await listsStore.createList(form.value.title.trim(), form.value.description.trim() || undefined)
+    await listsStore.createList(
+      form.value.title.trim(),
+      form.value.description.trim() || undefined,
+      form.value.defaultCurrency.trim().toUpperCase() || undefined
+    )
     closeModals()
   }
 
@@ -187,6 +228,7 @@
     await listsStore.updateList(editingList.value.id, {
       title: form.value.title.trim(),
       description: form.value.description.trim() || undefined,
+      defaultCurrency: form.value.defaultCurrency.trim().toUpperCase() || null,
     })
     closeModals()
   }
@@ -291,6 +333,44 @@
   .card-action-btn--danger:hover {
     background: var(--urgency-over-bg);
     color: var(--urgency-over-text);
+  }
+
+  /* ── List stats ── */
+  .list-stats {
+    margin: 0.25rem 0 0.4rem;
+    min-height: 1.2em;
+  }
+  .stat-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--urgency-high-bg, #fef3c7);
+    color: var(--urgency-high-text, #92400e);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+  }
+  .upcoming-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .upcoming-chip {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    gap: 0.5rem;
+    overflow: hidden;
+  }
+  .upcoming-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .upcoming-date {
+    flex-shrink: 0;
+    color: var(--color-text-faint);
   }
 
   /* ── Misc ── */

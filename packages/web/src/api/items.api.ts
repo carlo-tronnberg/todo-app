@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { TodoItem, Completion } from '../types'
+import type { TodoItem, Completion, ItemComment } from '../types'
 
 export const itemsApi = {
   getOne: (id: string) => apiClient.get<TodoItem>(`/items/${id}`).then((r) => r.data),
@@ -17,4 +17,14 @@ export const itemsApi = {
 
   /** Undo a completion. Deletes the record and reverts dueDate for recurring items. */
   deleteCompletion: (completionId: string) => apiClient.delete(`/completions/${completionId}`),
+
+  duplicate: (id: string) => apiClient.post<TodoItem>(`/items/${id}/duplicate`).then((r) => r.data),
+
+  getComments: (id: string) =>
+    apiClient.get<ItemComment[]>(`/items/${id}/comments`).then((r) => r.data),
+
+  addComment: (id: string, content: string) =>
+    apiClient.post<ItemComment>(`/items/${id}/comments`, { content }).then((r) => r.data),
+
+  deleteComment: (commentId: string) => apiClient.delete(`/comments/${commentId}`),
 }

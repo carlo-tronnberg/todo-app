@@ -52,6 +52,19 @@
       </div>
     </Teleport>
 
+    <!-- List filter toggles -->
+    <div v-if="allLists.length > 1" class="cal-filters">
+      <button
+        v-for="list in allLists"
+        :key="list.id"
+        class="cal-filter-chip"
+        :class="{ 'cal-filter-chip--active': visibleListIds.has(list.id) }"
+        @click="toggleListFilter(list.id)"
+      >
+        {{ list.title }}
+      </button>
+    </div>
+
     <!-- Calendar grid -->
     <div class="cal-grid">
       <div v-for="day in weekDayLabels" :key="day" class="cal-day-label">{{ day }}</div>
@@ -162,7 +175,7 @@
 
     <!-- Add Item Modal -->
     <Teleport to="body">
-      <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
+      <div v-if="showAddModal" class="modal-overlay">
         <div class="modal card modal-wide">
           <h2>New Item</h2>
           <form @submit.prevent="handleAddItem">
@@ -246,7 +259,7 @@
 
     <!-- Undo confirmation modal -->
     <Teleport to="body">
-      <div v-if="undoTarget" class="modal-overlay" @click.self="undoTarget = null">
+      <div v-if="undoTarget" class="modal-overlay">
         <div class="modal card">
           <h2>Undo completion?</h2>
           <p>
@@ -272,7 +285,7 @@
 
     <!-- iCal / Google Calendar dialog -->
     <Teleport to="body">
-      <div v-if="showIcalDialog" class="modal-overlay" @click.self="showIcalDialog = false">
+      <div v-if="showIcalDialog" class="modal-overlay">
         <div class="modal card ical-dialog">
           <h2>📅 Calendar Subscription</h2>
           <p class="modal-hint">
@@ -418,8 +431,19 @@
     showMonthPicker.value = false
   }
 
-  // ── Lists ──────────────────────────────────────────────────────────────────
+  // ── Lists + filter ─────────────────────────────────────────────────────────
   const allLists = ref<TodoList[]>([])
+  const visibleListIds = ref<Set<string>>(new Set())
+
+  function toggleListFilter(id: string) {
+    const next = new Set(visibleListIds.value)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    visibleListIds.value = next
+  }
 
   // ── iCal dialog state ──────────────────────────────────────────────────────
   const showIcalDialog = ref(false)
@@ -645,6 +669,7 @@
   onMounted(async () => {
     document.addEventListener('click', handleDocumentClick, true)
     allLists.value = await listsApi.getAll()
+    visibleListIds.value = new Set(allLists.value.map((l) => l.id))
     await loadData()
   })
 
@@ -670,9 +695,17 @@
       day: date.getDate(),
       inMonth: isSameMonth(date, currentMonth.value),
       isToday: isToday(date),
-      items: items.value.filter((item) => item.dueDate && isSameDay(parseISO(item.dueDate), date)),
+      items: items.value.filter(
+        (item) =>
+          item.dueDate &&
+          isSameDay(parseISO(item.dueDate), date) &&
+          visibleListIds.value.has(item.listId)
+      ),
       completions: completionList.value.filter(
-        (c) => c.dueDateSnapshot && isSameDay(parseISO(c.dueDateSnapshot), date)
+        (c) =>
+          c.dueDateSnapshot &&
+          isSameDay(parseISO(c.dueDateSnapshot), date) &&
+          visibleListIds.value.has(c.listId)
       ),
     }))
   })
@@ -721,8 +754,36 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
     flex-wrap: wrap;
+  }
+  .cal-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+  .cal-filter-chip {
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      border-color 0.15s;
+  }
+  .cal-filter-chip--active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+  }
+  .cal-filter-chip:hover:not(.cal-filter-chip--active) {
+    background: var(--color-surface);
+    color: var(--color-text);
   }
   .nav-btn {
     font-size: 1.1rem;

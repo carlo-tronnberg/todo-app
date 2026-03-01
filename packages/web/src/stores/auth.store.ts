@@ -32,11 +32,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(data: {
+    firstName?: string | null
+    lastName?: string | null
+    phone?: string | null
+  }) {
+    user.value = await authApi.updateProfile(data)
+  }
+
   function logout() {
     user.value = null
     token.value = null
     localStorage.removeItem('auth_token')
   }
 
-  return { user, token, isAuthenticated, login, register, fetchMe, logout }
+  return { user, token, isAuthenticated, login, register, fetchMe, updateProfile, logout }
 })

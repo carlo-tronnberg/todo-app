@@ -6,11 +6,13 @@ export const listsApi = {
 
   getOne: (id: string) => apiClient.get<TodoList>(`/lists/${id}`).then((r) => r.data),
 
-  create: (data: { title: string; description?: string }) =>
+  create: (data: { title: string; description?: string; defaultCurrency?: string }) =>
     apiClient.post<TodoList>('/lists', data).then((r) => r.data),
 
-  update: (id: string, data: Partial<Pick<TodoList, 'title' | 'description'>>) =>
-    apiClient.patch<TodoList>(`/lists/${id}`, data).then((r) => r.data),
+  update: (
+    id: string,
+    data: Partial<Pick<TodoList, 'title' | 'description' | 'defaultCurrency'>>
+  ) => apiClient.patch<TodoList>(`/lists/${id}`, data).then((r) => r.data),
 
   delete: (id: string) => apiClient.delete(`/lists/${id}`),
 

@@ -1,10 +1,12 @@
 import { FastifyPluginAsync } from 'fastify'
 import { ItemsService, UpdateItemInput } from '../../services/items.service'
 import { RecurrenceService } from '../../services/recurrence.service'
+import { CommentsService } from '../../services/comments.service'
 
 export const itemsRoutes: FastifyPluginAsync = async (app) => {
   const itemsService = new ItemsService(app.db)
   const recurrenceService = new RecurrenceService()
+  const commentsService = new CommentsService(app.db)
 
   const auth = { onRequest: [app.authenticate] }
 
@@ -53,10 +55,7 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
 
       // Advance due date for recurring items
       if (item.recurrenceRule && item.recurrenceRule.type !== 'none') {
-        const nextDueDate = recurrenceService.computeNextDueDate(
-          item.recurrenceRule,
-          item.dueDate
-        )
+        const nextDueDate = recurrenceService.computeNextDueDate(item.recurrenceRule, item.dueDate)
         await itemsService.updateDueDate(item.id, nextDueDate)
       }
 
@@ -64,17 +63,37 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
     }
   )
 
+  // POST /api/items/:itemId/duplicate
+  app.post<{ Params: { itemId: string } }>('/:itemId/duplicate', auth, async (request, reply) => {
+    const copy = await itemsService.duplicate(request.params.itemId, request.user.sub)
+    if (!copy) return reply.notFound()
+    return reply.code(201).send(copy)
+  })
+
   // GET /api/items/:itemId/completions
-  app.get<{ Params: { itemId: string } }>(
-    '/:itemId/completions',
+  app.get<{ Params: { itemId: string } }>('/:itemId/completions', auth, async (request, reply) => {
+    const completions = await itemsService.findCompletions(request.params.itemId, request.user.sub)
+    if (completions === null) return reply.notFound()
+    return completions
+  })
+
+  // GET /api/items/:itemId/comments
+  app.get<{ Params: { itemId: string } }>('/:itemId/comments', auth, async (request, reply) => {
+    const comments = await commentsService.findByItemId(request.params.itemId, request.user.sub)
+    if (comments === null) return reply.notFound()
+    return comments
+  })
+
+  // POST /api/items/:itemId/comments
+  app.post<{ Params: { itemId: string }; Body: { content: string } }>(
+    '/:itemId/comments',
     auth,
     async (request, reply) => {
-      const completions = await itemsService.findCompletions(
-        request.params.itemId,
-        request.user.sub
-      )
-      if (completions === null) return reply.notFound()
-      return completions
+      const { content } = request.body
+      if (!content?.trim()) return reply.badRequest('content is required')
+      const comment = await commentsService.create(request.params.itemId, request.user.sub, content)
+      if (!comment) return reply.notFound()
+      return reply.code(201).send(comment)
     }
   )
 }

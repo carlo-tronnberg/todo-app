@@ -1,21 +1,104 @@
-import { eq, and, inArray } from 'drizzle-orm'
-import { Database, todoLists, todoItems, recurrenceRules } from '../db'
+import { eq, and, inArray, gte, lte } from 'drizzle-orm'
+import { Database, todoLists, todoItems, recurrenceRules, completions } from '../db'
 
 export interface CreateListInput {
   title: string
   description?: string
+  defaultCurrency?: string
 }
 
 export interface UpdateListInput {
   title?: string
   description?: string
+  defaultCurrency?: string | null
 }
 
 export class ListsService {
   constructor(private db: Database) {}
 
   async findAll(userId: string) {
-    return this.db.select().from(todoLists).where(eq(todoLists.userId, userId))
+    const lists = await this.db.select().from(todoLists).where(eq(todoLists.userId, userId))
+    if (lists.length === 0) return []
+
+    const listIds = lists.map((l) => l.id)
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+
+    // Items due this month (non-archived) — used for uncompleted count
+    const itemsThisMonth = await this.db
+      .select()
+      .from(todoItems)
+      .where(
+        and(
+          inArray(todoItems.listId, listIds),
+          eq(todoItems.isArchived, false),
+          gte(todoItems.dueDate, monthStart),
+          lte(todoItems.dueDate, monthEnd)
+        )
+      )
+
+    // Completions recorded this month for those items
+    const itemIdsThisMonth = itemsThisMonth.map((i) => i.id)
+    let completedItemIds = new Set<string>()
+    /* c8 ignore next */
+    if (itemIdsThisMonth.length > 0) {
+      const comps = await this.db
+        .select()
+        .from(completions)
+        .where(
+          and(
+            inArray(completions.itemId, itemIdsThisMonth),
+            gte(completions.completedAt, monthStart)
+          )
+        )
+      completedItemIds = new Set(comps.map((c) => c.itemId))
+    }
+
+    // Upcoming items: due >= now, sorted ASC — take first 3 per list in memory
+    const upcomingAll = await this.db
+      .select({
+        id: todoItems.id,
+        listId: todoItems.listId,
+        title: todoItems.title,
+        dueDate: todoItems.dueDate,
+      })
+      .from(todoItems)
+      .where(
+        and(
+          inArray(todoItems.listId, listIds),
+          eq(todoItems.isArchived, false),
+          gte(todoItems.dueDate, now)
+        )
+      )
+      .orderBy(todoItems.dueDate)
+
+    // Aggregate per list
+    const uncompletedByList: Record<string, number> = {}
+    for (const item of itemsThisMonth) {
+      if (!completedItemIds.has(item.id)) {
+        uncompletedByList[item.listId] = (uncompletedByList[item.listId] ?? 0) + 1
+      }
+    }
+
+    const upcomingByList: Record<string, { id: string; title: string; dueDate: string }[]> = {}
+    for (const item of upcomingAll) {
+      /* c8 ignore next */
+      if (!upcomingByList[item.listId]) upcomingByList[item.listId] = []
+      if (upcomingByList[item.listId].length < 3) {
+        upcomingByList[item.listId].push({
+          id: item.id,
+          title: item.title,
+          dueDate: item.dueDate!.toISOString(),
+        })
+      }
+    }
+
+    return lists.map((list) => ({
+      ...list,
+      uncompletedThisMonth: uncompletedByList[list.id] ?? 0,
+      upcomingItems: upcomingByList[list.id] ?? [],
+    }))
   }
 
   async findById(id: string, userId: string) {

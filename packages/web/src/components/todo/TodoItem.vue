@@ -45,6 +45,9 @@
       >
         ⏱
       </router-link>
+      <button class="icon-btn" title="Duplicate item" @click.stop="$emit('duplicate', item.id)">
+        ⎘
+      </button>
       <button class="icon-btn" title="Edit item" @click.stop="$emit('edit', item)">✎</button>
       <button
         class="icon-btn icon-btn-danger"
@@ -67,6 +70,7 @@
     complete: [id: string]
     edit: [item: TodoItem]
     archive: [id: string]
+    duplicate: [id: string]
   }>()
 
   // ── Urgency ────────────────────────────────────────────────────────────────

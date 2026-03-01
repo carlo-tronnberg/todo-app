@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { AuthService } from '../../services/auth.service'
+import { AuthService, UpdateProfileInput } from '../../services/auth.service'
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const authService = new AuthService(app.db)
@@ -62,4 +62,40 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!user) return app.httpErrors.notFound()
     return user
   })
+
+  // PATCH /api/auth/me — update profile fields
+  app.patch<{ Body: UpdateProfileInput }>(
+    '/me',
+    { onRequest: [app.authenticate] },
+    async (request, reply) => {
+      const updated = await authService.updateProfile(request.user.sub, request.body)
+      /* c8 ignore next */
+      if (!updated) return reply.notFound()
+      return updated
+    }
+  )
+
+  // PATCH /api/auth/password — change password
+  app.patch<{ Body: { oldPassword: string; newPassword: string } }>(
+    '/password',
+    { onRequest: [app.authenticate] },
+    async (request, reply) => {
+      const { oldPassword, newPassword } = request.body
+      if (!oldPassword || !newPassword) {
+        return reply.badRequest('oldPassword and newPassword are required')
+      }
+      if (newPassword.length < 8) {
+        return reply.badRequest('newPassword must be at least 8 characters')
+      }
+      try {
+        await authService.changePassword(request.user.sub, oldPassword, newPassword)
+        return reply.code(204).send()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : ''
+        if (message === 'WRONG_PASSWORD') return reply.unauthorized('Current password is incorrect')
+        /* c8 ignore next 2 */
+        throw err
+      }
+    }
+  )
 }

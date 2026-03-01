@@ -20,13 +20,16 @@ export const useListsStore = defineStore('lists', () => {
     }
   }
 
-  async function createList(title: string, description?: string) {
-    const list = await listsApi.create({ title, description })
+  async function createList(title: string, description?: string, defaultCurrency?: string) {
+    const list = await listsApi.create({ title, description, defaultCurrency })
     lists.value.push(list)
     return list
   }
 
-  async function updateList(id: string, data: { title?: string; description?: string }) {
+  async function updateList(
+    id: string,
+    data: { title?: string; description?: string; defaultCurrency?: string | null }
+  ) {
     const updated = await listsApi.update(id, data)
     const idx = lists.value.findIndex((l) => l.id === id)
     if (idx !== -1) lists.value[idx] = updated

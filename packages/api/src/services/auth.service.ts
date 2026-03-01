@@ -13,6 +13,12 @@ export interface LoginInput {
   password: string
 }
 
+export interface UpdateProfileInput {
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
+}
+
 export class AuthService {
   constructor(private db: Database) {}
 
@@ -73,6 +79,9 @@ export class AuthService {
         id: users.id,
         email: users.email,
         username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -81,5 +90,44 @@ export class AuthService {
 
     /* c8 ignore next */
     return user ?? null
+  }
+
+  async updateProfile(id: string, input: UpdateProfileInput) {
+    const [updated] = await this.db
+      .update(users)
+      .set({
+        firstName: input.firstName ?? null,
+        lastName: input.lastName ?? null,
+        phone: input.phone ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
+        createdAt: users.createdAt,
+      })
+
+    /* c8 ignore next */
+    return updated ?? null
+  }
+
+  async changePassword(id: string, oldPassword: string, newPassword: string) {
+    const [user] = await this.db.select().from(users).where(eq(users.id, id)).limit(1)
+    /* c8 ignore next */
+    if (!user) throw new Error('USER_NOT_FOUND')
+
+    const valid = await verifyPassword(oldPassword, user.passwordHash)
+    if (!valid) throw new Error('WRONG_PASSWORD')
+
+    const newHash = await hashPassword(newPassword)
+    await this.db
+      .update(users)
+      .set({ passwordHash: newHash, updatedAt: new Date() })
+      .where(eq(users.id, id))
   }
 }

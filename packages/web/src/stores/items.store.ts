@@ -51,9 +51,26 @@ export const useItemsStore = defineStore('items', () => {
     }
   }
 
+  async function duplicateItem(listId: string, itemId: string) {
+    const copy = await itemsApi.duplicate(itemId)
+    if (!itemsByList.value[listId]) itemsByList.value[listId] = []
+    itemsByList.value[listId].push(copy)
+    return copy
+  }
+
   function getItems(listId: string): TodoItem[] {
     return itemsByList.value[listId] ?? []
   }
 
-  return { itemsByList, loading, fetchItems, createItem, updateItem, completeItem, archiveItem, getItems }
+  return {
+    itemsByList,
+    loading,
+    fetchItems,
+    createItem,
+    updateItem,
+    completeItem,
+    archiveItem,
+    duplicateItem,
+    getItems,
+  }
 })

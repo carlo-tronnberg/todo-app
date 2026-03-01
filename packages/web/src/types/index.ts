@@ -22,6 +22,9 @@ export interface User {
   id: string
   email: string
   username: string
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
   createdAt: string
 }
 
@@ -30,8 +33,11 @@ export interface TodoList {
   userId: string
   title: string
   description?: string | null
+  defaultCurrency?: string | null
   createdAt: string
   updatedAt: string
+  uncompletedThisMonth?: number
+  upcomingItems?: { id: string; title: string; dueDate: string }[]
 }
 
 export interface TodoItem {
@@ -40,7 +46,12 @@ export interface TodoItem {
   recurrenceRuleId?: string | null
   title: string
   description?: string | null
+  startDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
   dueDate?: string | null
+  amount?: string | null
+  currency?: string | null
   colorOverride?: string | null
   isArchived: boolean
   sortOrder: number
@@ -55,6 +66,25 @@ export interface Completion {
   dueDateSnapshot?: string | null
   completedAt: string
   note?: string | null
+}
+
+export interface ItemComment {
+  id: string
+  itemId: string
+  userId: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuditLog {
+  id: string
+  userId: string
+  action: string
+  entityType: string
+  entityId: string
+  summary?: string | null
+  createdAt: string
 }
 
 export interface CalendarItem extends TodoItem {

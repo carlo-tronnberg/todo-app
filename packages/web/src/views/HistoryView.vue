@@ -19,6 +19,14 @@
         </div>
         <div v-if="c.note" class="history-note">{{ c.note }}</div>
         <div class="history-actions">
+          <button
+            v-if="listId"
+            class="btn btn-secondary btn-sm"
+            title="Create a new item pre-filled with this one's details"
+            @click="createFromCompletion"
+          >
+            New item from this
+          </button>
           <button class="btn btn-secondary btn-sm" @click="openUndoModal(c)">Undo</button>
         </div>
       </div>
@@ -26,7 +34,7 @@
 
     <!-- Undo confirmation modal -->
     <Teleport to="body">
-      <div v-if="undoTarget" class="modal-overlay" @click.self="undoTarget = null">
+      <div v-if="undoTarget" class="modal-overlay">
         <div class="modal card">
           <h2>Undo completion?</h2>
           <p>
@@ -52,16 +60,18 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
   import { format, parseISO } from 'date-fns'
   import { itemsApi } from '../api/items.api'
-  import type { Completion } from '../types'
+  import type { Completion, TodoItem } from '../types'
 
   const route = useRoute()
+  const router = useRouter()
   const itemId = route.params.itemId as string
   const listId = route.query.listId as string | undefined
 
   const completions = ref<Completion[]>([])
+  const item = ref<TodoItem | null>(null)
   const loading = ref(true)
 
   // Undo state
@@ -70,7 +80,12 @@
 
   onMounted(async () => {
     try {
-      completions.value = await itemsApi.getCompletions(itemId)
+      const [comps, fetchedItem] = await Promise.all([
+        itemsApi.getCompletions(itemId),
+        itemsApi.getOne(itemId),
+      ])
+      completions.value = comps
+      item.value = fetchedItem
       // Most recent first
       completions.value.sort(
         (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
@@ -79,6 +94,13 @@
       loading.value = false
     }
   })
+
+  function createFromCompletion() {
+    if (!listId || !item.value) return
+    const query: Record<string, string> = { prefillTitle: item.value.title }
+    if (item.value.description) query.prefillDesc = item.value.description
+    router.push({ path: `/lists/${listId}`, query })
+  }
 
   function formatDateTime(iso: string) {
     return format(parseISO(iso), 'dd MMM yyyy HH:mm')

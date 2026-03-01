@@ -8,6 +8,8 @@ import { listsRoutes } from './routes/lists'
 import { itemsRoutes } from './routes/items'
 import { calendarRoutes } from './routes/calendar'
 import { completionsRoutes } from './routes/completions'
+import { commentsRoutes } from './routes/comments'
+import { auditRoutes } from './routes/audit'
 
 export async function buildApp(opts: { logger?: boolean } = {}) {
   const app = Fastify({
@@ -27,6 +29,8 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(itemsRoutes, { prefix: '/api/items' })
   await app.register(calendarRoutes, { prefix: '/api/calendar' })
   await app.register(completionsRoutes, { prefix: '/api/completions' })
+  await app.register(commentsRoutes, { prefix: '/api/comments' })
+  await app.register(auditRoutes, { prefix: '/api/audit' })
 
   // Health check
   app.get('/health', async () => ({

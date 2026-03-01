@@ -2,11 +2,19 @@ import { eq, and } from 'drizzle-orm'
 import { Database, todoItems, recurrenceRules, todoLists, completions } from '../db'
 import { RecurrenceRuleInput } from '../types'
 import { parseDateOrNull } from '../utils/date'
+import { RecurrenceService } from './recurrence.service'
+
+const recurrenceSvc = new RecurrenceService()
 
 export interface CreateItemInput {
   title: string
   description?: string
   dueDate?: string
+  startDate?: string
+  startTime?: string
+  endTime?: string
+  amount?: string
+  currency?: string
   colorOverride?: string
   sortOrder?: number
   recurrenceRule?: RecurrenceRuleInput
@@ -16,9 +24,15 @@ export interface UpdateItemInput {
   title?: string
   description?: string
   dueDate?: string | null
+  startDate?: string | null
+  startTime?: string | null
+  endTime?: string | null
+  amount?: string | null
+  currency?: string | null
   colorOverride?: string | null
   sortOrder?: number
   recurrenceRule?: RecurrenceRuleInput | null
+  listId?: string
 }
 
 export class ItemsService {
@@ -74,6 +88,12 @@ export class ItemsService {
       recurrenceRuleId = rule.id
     }
 
+    // Auto-derive first future occurrence when recurrence is set but no due date given
+    let resolvedDueDate = parseDateOrNull(input.dueDate)
+    if (!resolvedDueDate && input.recurrenceRule && input.recurrenceRule.type !== 'none') {
+      resolvedDueDate = recurrenceSvc.computeNextDueDate(input.recurrenceRule, null)
+    }
+
     const [item] = await this.db
       .insert(todoItems)
       .values({
@@ -81,7 +101,12 @@ export class ItemsService {
         recurrenceRuleId,
         title: input.title,
         description: input.description,
-        dueDate: parseDateOrNull(input.dueDate),
+        startDate: parseDateOrNull(input.startDate),
+        startTime: input.startTime,
+        endTime: input.endTime,
+        dueDate: resolvedDueDate,
+        amount: input.amount,
+        currency: input.currency,
         colorOverride: input.colorOverride,
         sortOrder: input.sortOrder ?? 0,
       })
@@ -142,11 +167,36 @@ export class ItemsService {
     }
 
     if (input.title !== undefined) updateData.title = input.title
-    if (input.description !== undefined) updateData.description = input.description
+    if (input.description !== undefined) updateData.description = input.description ?? null
     if (input.dueDate !== undefined)
       updateData.dueDate = input.dueDate ? parseDateOrNull(input.dueDate) : null
+
+    // Auto-derive first future occurrence when recurrence is set but item has no due date
+    if (
+      input.recurrenceRule &&
+      input.recurrenceRule.type !== 'none' &&
+      input.dueDate === undefined &&
+      !existing.dueDate
+    ) {
+      updateData.dueDate = recurrenceSvc.computeNextDueDate(input.recurrenceRule, null)
+    }
+    if (input.startDate !== undefined)
+      updateData.startDate = input.startDate ? parseDateOrNull(input.startDate) : null
+    if (input.startTime !== undefined) updateData.startTime = input.startTime ?? null
+    if (input.endTime !== undefined) updateData.endTime = input.endTime ?? null
+    if (input.amount !== undefined) updateData.amount = input.amount ?? null
+    if (input.currency !== undefined) updateData.currency = input.currency ?? null
     if (input.colorOverride !== undefined) updateData.colorOverride = input.colorOverride ?? null
     if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder
+    if (input.listId !== undefined) {
+      // Verify the target list belongs to the same user before moving
+      const [targetList] = await this.db
+        .select()
+        .from(todoLists)
+        .where(and(eq(todoLists.id, input.listId), eq(todoLists.userId, userId)))
+        .limit(1)
+      if (targetList) updateData.listId = input.listId
+    }
 
     const [updated] = await this.db
       .update(todoItems)
@@ -195,6 +245,30 @@ export class ItemsService {
       .returning()
 
     return updated
+  }
+
+  async duplicate(itemId: string, userId: string) {
+    const existing = await this.findById(itemId, userId)
+    if (!existing) return null
+
+    const recurrenceRule = existing.recurrenceRule
+      ? {
+          type: existing.recurrenceRule.type,
+          dayOfMonth: existing.recurrenceRule.dayOfMonth ?? undefined,
+          intervalDays: existing.recurrenceRule.intervalDays ?? undefined,
+          weekdayMask: existing.recurrenceRule.weekdayMask ?? undefined,
+          anchorDate: existing.recurrenceRule.anchorDate ?? undefined,
+        }
+      : undefined
+
+    return this.create(existing.listId, userId, {
+      title: `Copy of ${existing.title}`,
+      description: existing.description ?? undefined,
+      dueDate: existing.dueDate?.toISOString(),
+      colorOverride: existing.colorOverride ?? undefined,
+      sortOrder: existing.sortOrder,
+      recurrenceRule,
+    })
   }
 
   async findCompletions(itemId: string, userId: string) {
