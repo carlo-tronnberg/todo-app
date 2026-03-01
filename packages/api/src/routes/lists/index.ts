@@ -2,10 +2,12 @@ import { FastifyPluginAsync } from 'fastify'
 import { ListsService } from '../../services/lists.service'
 import { ItemsService } from '../../services/items.service'
 import { CreateItemInput } from '../../services/items.service'
+import { AuditService } from '../../services/audit.service'
 
 export const listsRoutes: FastifyPluginAsync = async (app) => {
   const listsService = new ListsService(app.db)
   const itemsService = new ItemsService(app.db)
+  const auditService = new AuditService(app.db)
 
   const auth = { onRequest: [app.authenticate] }
 
@@ -18,6 +20,9 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Body: { title: string; description?: string } }>('/', auth, async (request, reply) => {
     if (!request.body.title) return reply.badRequest('title is required')
     const list = await listsService.create(request.user.sub, request.body)
+    auditService
+      .log(request.user.sub, 'list.create', 'todo_list', list.id, `Created list "${list.title}"`)
+      .catch(() => {})
     return reply.code(201).send(list)
   })
 
@@ -35,6 +40,15 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
   }>('/:listId', auth, async (request, reply) => {
     const updated = await listsService.update(request.params.listId, request.user.sub, request.body)
     if (!updated) return reply.notFound()
+    auditService
+      .log(
+        request.user.sub,
+        'list.update',
+        'todo_list',
+        updated.id,
+        `Updated list "${updated.title}"`
+      )
+      .catch(() => {})
     return updated
   })
 
@@ -43,6 +57,9 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
     const list = await listsService.findById(request.params.listId, request.user.sub)
     if (!list) return reply.notFound()
     await listsService.delete(request.params.listId, request.user.sub)
+    auditService
+      .log(request.user.sub, 'list.delete', 'todo_list', list.id, `Deleted list "${list.title}"`)
+      .catch(() => {})
     return reply.code(204).send()
   })
 
@@ -66,6 +83,15 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
           request.user.sub,
           request.body
         )
+        auditService
+          .log(
+            request.user.sub,
+            'item.create',
+            'todo_item',
+            item!.id,
+            `Created item "${item!.title}"`
+          )
+          .catch(() => {})
         return reply.code(201).send(item)
       } catch (err) {
         /* c8 ignore next */

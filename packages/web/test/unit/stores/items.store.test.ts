@@ -11,6 +11,7 @@ const { mockListsApi, mockItemsApi } = vi.hoisted(() => ({
     update: vi.fn(),
     archive: vi.fn(),
     complete: vi.fn(),
+    duplicate: vi.fn(),
   },
 }))
 
@@ -153,5 +154,29 @@ describe('getItems()', () => {
   it('returns empty array for an unknown listId', () => {
     const store = useItemsStore()
     expect(store.getItems('unknown')).toEqual([])
+  })
+})
+
+describe('duplicateItem()', () => {
+  it('adds copy to itemsByList and returns it', async () => {
+    const original = fakeItem('i1', 'Original')
+    const copy = fakeItem('i2', 'Copy of Original')
+    mockListsApi.getItems.mockResolvedValue([original])
+    mockItemsApi.duplicate.mockResolvedValue(copy)
+    const store = useItemsStore()
+    await store.fetchItems('l1')
+    const result = await store.duplicateItem('l1', 'i1')
+    expect(result).toEqual(copy)
+    expect(store.itemsByList['l1']).toHaveLength(2)
+    expect(store.itemsByList['l1'][1].title).toBe('Copy of Original')
+  })
+
+  it('initialises array for list if not yet loaded', async () => {
+    const copy = fakeItem('i2', 'Copy')
+    mockItemsApi.duplicate.mockResolvedValue(copy)
+    const store = useItemsStore()
+    const result = await store.duplicateItem('l1', 'i1')
+    expect(result).toEqual(copy)
+    expect(store.itemsByList['l1']).toEqual([copy])
   })
 })

@@ -89,3 +89,41 @@ describe('itemsApi.deleteCompletion', () => {
     expect(mockDelete).toHaveBeenCalledWith('/completions/c1')
   })
 })
+
+describe('itemsApi.duplicate', () => {
+  it('POSTs to /items/:id/duplicate and returns copy', async () => {
+    const copy = { ...fakeItem, id: 'i2', title: 'Copy of Task' }
+    mockPost.mockResolvedValue({ data: copy })
+    const result = await itemsApi.duplicate('i1')
+    expect(mockPost).toHaveBeenCalledWith('/items/i1/duplicate')
+    expect(result).toEqual(copy)
+  })
+})
+
+describe('itemsApi.getComments', () => {
+  it('GETs /items/:id/comments and returns comments', async () => {
+    const fakeComments = [{ id: 'cm1', itemId: 'i1', userId: 'u1', content: 'Hello' }]
+    mockGet.mockResolvedValue({ data: fakeComments })
+    const result = await itemsApi.getComments('i1')
+    expect(mockGet).toHaveBeenCalledWith('/items/i1/comments')
+    expect(result).toEqual(fakeComments)
+  })
+})
+
+describe('itemsApi.addComment', () => {
+  it('POSTs to /items/:id/comments and returns new comment', async () => {
+    const newComment = { id: 'cm2', itemId: 'i1', userId: 'u1', content: 'New comment' }
+    mockPost.mockResolvedValue({ data: newComment })
+    const result = await itemsApi.addComment('i1', 'New comment')
+    expect(mockPost).toHaveBeenCalledWith('/items/i1/comments', { content: 'New comment' })
+    expect(result).toEqual(newComment)
+  })
+})
+
+describe('itemsApi.deleteComment', () => {
+  it('DELETEs /comments/:commentId', async () => {
+    mockDelete.mockResolvedValue({})
+    await itemsApi.deleteComment('cm1')
+    expect(mockDelete).toHaveBeenCalledWith('/comments/cm1')
+  })
+})

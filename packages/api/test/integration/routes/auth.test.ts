@@ -117,4 +117,134 @@ describe('Auth Routes', () => {
       expect(res.statusCode).toBe(401)
     })
   })
+
+  describe('PATCH /api/auth/me', () => {
+    let token: string
+
+    beforeAll(async () => {
+      const uid = Date.now() + 3
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `patch+${uid}@example.com`,
+          username: `patchuser${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      token = res.json().token
+    })
+
+    it('updates profile fields and returns updated user', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/me',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { firstName: 'Alice', lastName: 'Smith', phone: '+1 555 000 0001' },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = res.json()
+      expect(body.firstName).toBe('Alice')
+      expect(body.lastName).toBe('Smith')
+      expect(body.phone).toBe('+1 555 000 0001')
+    })
+
+    it('clears profile fields when null is passed', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/me',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { firstName: null, lastName: null },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().firstName).toBeNull()
+    })
+
+    it('returns 401 without a token', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/me',
+        payload: { firstName: 'Bob' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+  })
+
+  describe('PATCH /api/auth/password', () => {
+    let token: string
+    const uid = Date.now() + 4
+    const initialPassword = 'SecurePass123'
+
+    beforeAll(async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `pw+${uid}@example.com`,
+          username: `pwuser${uid}`,
+          password: initialPassword,
+        },
+      })
+      token = res.json().token
+    })
+
+    it('returns 400 when fields are missing', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/password',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { oldPassword: initialPassword },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('returns 400 when new password is too short', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/password',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { oldPassword: initialPassword, newPassword: 'short' },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('returns 401 when old password is wrong', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/password',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { oldPassword: 'WrongPassword!', newPassword: 'NewSecurePass456' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('changes password and returns 204', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/password',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { oldPassword: initialPassword, newPassword: 'NewSecurePass456' },
+      })
+      expect(res.statusCode).toBe(204)
+    })
+
+    it('can log in with the new password after change', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { email: `pw+${uid}@example.com`, password: 'NewSecurePass456' },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().token).toBeTruthy()
+    })
+
+    it('returns 401 without a token', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/auth/password',
+        payload: { oldPassword: 'anything', newPassword: 'AnythingLong123' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+  })
 })

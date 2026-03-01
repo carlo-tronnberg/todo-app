@@ -17,6 +17,8 @@ function makeRouter() {
       { path: '/', component: { template: '<div>Dashboard</div>' } },
       { path: '/login', component: { template: '<div>Login</div>' }, meta: { public: true } },
       { path: '/calendar', component: { template: '<div>Calendar</div>' } },
+      { path: '/audit', component: { template: '<div>Audit</div>' } },
+      { path: '/profile', component: { template: '<div>Profile</div>' } },
     ],
   })
 }

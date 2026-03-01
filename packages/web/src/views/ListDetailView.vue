@@ -145,14 +145,14 @@
           </div>
           <div class="form-group">
             <label class="form-label">Currency</label>
-            <input
-              v-model="form.currency"
-              type="text"
-              maxlength="3"
-              class="form-input form-input-sm"
-              placeholder="USD"
-              style="text-transform: uppercase; max-width: 80px"
-            />
+            <select v-model="form.currency" class="form-input" style="max-width: 120px">
+              <option value="">— None —</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="SEK">SEK</option>
+              <option value="DKK">DKK</option>
+              <option value="HUF">HUF</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Recurrence</label>

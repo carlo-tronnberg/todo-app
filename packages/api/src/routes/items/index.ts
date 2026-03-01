@@ -2,11 +2,13 @@ import { FastifyPluginAsync } from 'fastify'
 import { ItemsService, UpdateItemInput } from '../../services/items.service'
 import { RecurrenceService } from '../../services/recurrence.service'
 import { CommentsService } from '../../services/comments.service'
+import { AuditService } from '../../services/audit.service'
 
 export const itemsRoutes: FastifyPluginAsync = async (app) => {
   const itemsService = new ItemsService(app.db)
   const recurrenceService = new RecurrenceService()
   const commentsService = new CommentsService(app.db)
+  const auditService = new AuditService(app.db)
 
   const auth = { onRequest: [app.authenticate] }
 
@@ -28,6 +30,15 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
         request.body
       )
       if (!updated) return reply.notFound()
+      auditService
+        .log(
+          request.user.sub,
+          'item.update',
+          'todo_item',
+          updated.id,
+          `Updated item "${updated.title}"`
+        )
+        .catch(() => {})
       return updated
     }
   )
@@ -36,6 +47,15 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
   app.delete<{ Params: { itemId: string } }>('/:itemId', auth, async (request, reply) => {
     const result = await itemsService.archive(request.params.itemId, request.user.sub)
     if (!result) return reply.notFound()
+    auditService
+      .log(
+        request.user.sub,
+        'item.archive',
+        'todo_item',
+        request.params.itemId,
+        `Archived item "${result.title}"`
+      )
+      .catch(() => {})
     return reply.code(204).send()
   })
 
@@ -59,6 +79,15 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
         await itemsService.updateDueDate(item.id, nextDueDate)
       }
 
+      auditService
+        .log(
+          request.user.sub,
+          'item.complete',
+          'todo_item',
+          item.id,
+          `Completed item "${item.title}"`
+        )
+        .catch(() => {})
       return reply.code(201).send(completion)
     }
   )
@@ -67,6 +96,15 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Params: { itemId: string } }>('/:itemId/duplicate', auth, async (request, reply) => {
     const copy = await itemsService.duplicate(request.params.itemId, request.user.sub)
     if (!copy) return reply.notFound()
+    auditService
+      .log(
+        request.user.sub,
+        'item.duplicate',
+        'todo_item',
+        copy.id,
+        `Duplicated item "${copy.title}"`
+      )
+      .catch(() => {})
     return reply.code(201).send(copy)
   })
 

@@ -69,15 +69,19 @@ packages/
       cors.ts
       db.ts                       # decorates fastify with db instance
     routes/
-      auth/index.ts               # POST /auth/register, /auth/login, GET /auth/me
+      auth/index.ts               # register, login, GET/PATCH /auth/me, PATCH /auth/password
       lists/index.ts              # CRUD /api/lists + /api/lists/:id/items
-      items/index.ts              # PATCH/DELETE /api/items/:id, complete, archive
+      items/index.ts              # PATCH/DELETE /api/items/:id, complete, duplicate, comments
       completions/index.ts        # DELETE /api/completions/:id (undo)
+      comments/index.ts           # DELETE /api/comments/:commentId
       calendar/index.ts           # GET /api/calendar/range, /api/calendar/ical
+      audit/index.ts              # GET /api/audit (paginated, user-scoped)
     services/
-      auth.service.ts
+      auth.service.ts             # register, login, updateProfile, changePassword
       lists.service.ts
-      items.service.ts
+      items.service.ts            # duplicate, move (listId in update)
+      comments.service.ts         # findByItemId, create, delete
+      audit.service.ts            # log(), findByUser() — called fire-and-forget in routes
       calendar.service.ts
       recurrence.service.ts       # pure domain logic — no I/O, fully unit-tested
     utils/
@@ -107,9 +111,11 @@ packages/
       TodoItem.vue                # renders one item with urgency, recurrence, actions
     views/
       DashboardView.vue           # list of todo lists, create/edit/delete
-      ListDetailView.vue          # items within a list
+      ListDetailView.vue          # items within a list, comments, move-to-list
       CalendarView.vue            # monthly grid; modals use <Teleport to="body">
       HistoryView.vue             # completion log for one item, undo support
+      ProfileView.vue             # personal details form + change-password section
+      AuditLogView.vue            # change log table, load-more pagination
       LoginView.vue
       RegisterView.vue
     types/index.ts
@@ -134,10 +140,14 @@ docker/
 
 **Auth:** JWT via `@fastify/jwt`. Token is verified by a `preHandler` hook on protected routes. Passwords hashed with `bcryptjs`.
 
-**Database:** Drizzle ORM + PostgreSQL. Schema is in `src/db/schema.ts`. Five tables:
+**Database:** Drizzle ORM + PostgreSQL. Schema is in `src/db/schema.ts`. Seven tables:
 
-- `users` → `todo_lists` → `todo_items` ← `recurrence_rules` (optional, nullable FK)
+- `users` (firstName, lastName, phone) → `todo_lists` (defaultCurrency) → `todo_items` (amount, currency, startDate/Time, endTime) ← `recurrence_rules`
 - `todo_items` → `completions` (snapshot `due_date` at completion time for accurate history)
+- `item_comments` (itemId FK, userId FK, content)
+- `audit_logs` (userId FK, action, entityType, entityId, summary, createdAt)
+
+**Audit logging:** `AuditService.log()` is called fire-and-forget (`.catch(() => {})`) at the end of each mutating route handler so it never blocks or surfaces errors to the client.
 
 **Recurrence types** (pgEnum `recurrence_type`): `none`, `daily`, `weekly`, `weekly_on_day`, `monthly_on_day`, `custom_days`, `yearly`. Weekly bitmask: Sun=1, Mon=2, Tue=4, Wed=8, Thu=16, Fri=32, Sat=64.
 
@@ -203,6 +213,18 @@ await flushPromises()
 const form = document.body.querySelector('form') as HTMLFormElement
 form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
 await flushPromises()
+```
+
+**Router warnings in tests** — `[Vue Router warn]: No match found` appears when a `router-link` target or the memory history's initial `/` path has no matching route. Fix by adding stub routes for all targets the component links to, or a catch-all redirect:
+
+```ts
+{ path: '/:pathMatch(.*)*', redirect: '/the-view-under-test' }
+```
+
+**Passing `null` in test overrides** — `??` treats `null` as nullish and returns the default. Use explicit key presence check when `null` is a valid override:
+
+```ts
+summary: 'summary' in overrides ? overrides.summary : 'default value'
 ```
 
 **Coverage thresholds:** statements 90%, lines 90%, functions 85%, branches 80% (both packages).

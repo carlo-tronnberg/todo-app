@@ -1,8 +1,10 @@
 import { FastifyPluginAsync } from 'fastify'
 import { AuthService, UpdateProfileInput } from '../../services/auth.service'
+import { AuditService } from '../../services/audit.service'
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const authService = new AuthService(app.db)
+  const auditService = new AuditService(app.db)
 
   // POST /api/auth/register
   app.post<{
@@ -71,6 +73,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const updated = await authService.updateProfile(request.user.sub, request.body)
       /* c8 ignore next */
       if (!updated) return reply.notFound()
+      auditService
+        .log(request.user.sub, 'profile.update', 'user', request.user.sub, 'Updated profile')
+        .catch(() => {})
       return updated
     }
   )
@@ -89,6 +94,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
       try {
         await authService.changePassword(request.user.sub, oldPassword, newPassword)
+        auditService
+          .log(request.user.sub, 'password.change', 'user', request.user.sub, 'Changed password')
+          .catch(() => {})
         return reply.code(204).send()
       } catch (err) {
         const message = err instanceof Error ? err.message : ''

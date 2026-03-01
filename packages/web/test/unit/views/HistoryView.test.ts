@@ -30,6 +30,7 @@ async function makeRouter(itemId = 'i1', listId?: string) {
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: { template: '<div>Dashboard</div>' } },
+      { path: '/lists/:listId', component: { template: '<div>List</div>' } },
       {
         path: '/history/:itemId',
         name: 'ItemHistory',

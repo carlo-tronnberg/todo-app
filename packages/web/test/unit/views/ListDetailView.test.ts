@@ -22,6 +22,10 @@ const { mockListsApi, mockItemsApi } = vi.hoisted(() => ({
     complete: vi.fn(),
     getCompletions: vi.fn(),
     deleteCompletion: vi.fn(),
+    duplicate: vi.fn(),
+    getComments: vi.fn(),
+    addComment: vi.fn(),
+    deleteComment: vi.fn(),
   },
 }))
 
@@ -334,5 +338,117 @@ describe('ListDetailView', () => {
     await flushPromises()
 
     expect(mockItemsApi.archive).not.toHaveBeenCalled()
+  })
+
+  describe('comments', () => {
+    it('toggles comments open and loads them via API', async () => {
+      const item = fakeItem('i1', 'Item with Comments')
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([item])
+      const fakeComments = [
+        {
+          id: 'c1',
+          itemId: 'i1',
+          userId: 'u1',
+          content: 'Hello',
+          createdAt: '2024-06-15T10:00:00Z',
+          updatedAt: '2024-06-15T10:00:00Z',
+        },
+      ]
+      mockItemsApi.getComments.mockResolvedValue(fakeComments)
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+
+      const toggleBtn = wrapper.find('.comments-toggle')
+      await toggleBtn.trigger('click')
+      await flushPromises()
+
+      expect(mockItemsApi.getComments).toHaveBeenCalledWith('i1')
+      expect(wrapper.text()).toContain('Hello')
+    })
+
+    it('hides comments when toggled closed', async () => {
+      const item = fakeItem('i1', 'Item')
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([item])
+      mockItemsApi.getComments.mockResolvedValue([])
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+
+      const toggleBtn = wrapper.find('.comments-toggle')
+      // Open
+      await toggleBtn.trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.comments-section').exists()).toBe(true)
+
+      // Close
+      await toggleBtn.trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.comments-section').exists()).toBe(false)
+    })
+
+    it('adds a comment', async () => {
+      const item = fakeItem('i1', 'Commentable Item')
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([item])
+      mockItemsApi.getComments.mockResolvedValue([])
+      const newComment = {
+        id: 'c2',
+        itemId: 'i1',
+        userId: 'u1',
+        content: 'New comment',
+        createdAt: '2024-06-15T10:00:00Z',
+        updatedAt: '2024-06-15T10:00:00Z',
+      }
+      mockItemsApi.addComment.mockResolvedValue(newComment)
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+
+      // Open comments
+      await wrapper.find('.comments-toggle').trigger('click')
+      await flushPromises()
+
+      // Fill in comment text (input type="text" with class comment-input)
+      const input = wrapper.find('input.comment-input')
+      await input.setValue('New comment')
+
+      // Submit form
+      await wrapper.find('form.comment-form').trigger('submit')
+      await flushPromises()
+
+      expect(mockItemsApi.addComment).toHaveBeenCalledWith('i1', 'New comment')
+    })
+
+    it('deletes a comment', async () => {
+      const item = fakeItem('i1', 'Has Comments')
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([item])
+      const existingComment = {
+        id: 'c1',
+        itemId: 'i1',
+        userId: 'u1',
+        content: 'Old comment',
+        createdAt: '2024-06-15T10:00:00Z',
+        updatedAt: '2024-06-15T10:00:00Z',
+      }
+      mockItemsApi.getComments.mockResolvedValue([existingComment])
+      mockItemsApi.deleteComment.mockResolvedValue(undefined)
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+
+      // Open comments
+      await wrapper.find('.comments-toggle').trigger('click')
+      await flushPromises()
+
+      // Click delete
+      await wrapper.find('button.comment-delete').trigger('click')
+      await flushPromises()
+
+      expect(mockItemsApi.deleteComment).toHaveBeenCalledWith('c1')
+    })
   })
 })

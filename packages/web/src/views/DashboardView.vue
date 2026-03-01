@@ -69,14 +69,14 @@
           </div>
           <div class="form-group">
             <label class="form-label">Default currency (optional)</label>
-            <input
-              v-model="form.defaultCurrency"
-              type="text"
-              maxlength="3"
-              class="form-input"
-              placeholder="USD"
-              style="text-transform: uppercase; max-width: 80px"
-            />
+            <select v-model="form.defaultCurrency" class="form-input" style="max-width: 120px">
+              <option value="">— None —</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="SEK">SEK</option>
+              <option value="DKK">DKK</option>
+              <option value="HUF">HUF</option>
+            </select>
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModals">Cancel</button>
@@ -110,14 +110,14 @@
           </div>
           <div class="form-group">
             <label class="form-label">Default currency (optional)</label>
-            <input
-              v-model="form.defaultCurrency"
-              type="text"
-              maxlength="3"
-              class="form-input"
-              placeholder="USD"
-              style="text-transform: uppercase; max-width: 80px"
-            />
+            <select v-model="form.defaultCurrency" class="form-input" style="max-width: 120px">
+              <option value="">— None —</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="SEK">SEK</option>
+              <option value="DKK">DKK</option>
+              <option value="HUF">HUF</option>
+            </select>
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModals">Cancel</button>

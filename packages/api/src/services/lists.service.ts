@@ -114,7 +114,12 @@ export class ListsService {
   async create(userId: string, input: CreateListInput) {
     const [list] = await this.db
       .insert(todoLists)
-      .values({ userId, title: input.title, description: input.description })
+      .values({
+        userId,
+        title: input.title,
+        description: input.description,
+        defaultCurrency: input.defaultCurrency,
+      })
       .returning()
 
     return list
