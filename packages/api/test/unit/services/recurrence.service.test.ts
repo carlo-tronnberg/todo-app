@@ -35,7 +35,9 @@ describe('RecurrenceService', () => {
         // next should be roughly tomorrow
         const diffMs = next!.getTime() - before.getTime()
         expect(diffMs).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000 - 1000)
-        expect(diffMs).toBeLessThanOrEqual(after.getTime() - before.getTime() + 24 * 60 * 60 * 1000 + 1000)
+        expect(diffMs).toBeLessThanOrEqual(
+          after.getTime() - before.getTime() + 24 * 60 * 60 * 1000 + 1000
+        )
       })
     })
 
@@ -104,6 +106,70 @@ describe('RecurrenceService', () => {
       it('throws when intervalDays is less than 1', () => {
         expect(() =>
           svc.computeNextDueDate({ type: 'custom_days', intervalDays: 0 }, new Date())
+        ).toThrow()
+      })
+    })
+
+    describe('yearly', () => {
+      it('advances exactly one year on a standard date', () => {
+        const base = new Date('2024-03-15T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'yearly' }, base)
+        expect(next).not.toBeNull()
+        expect(next!.getFullYear()).toBe(2025)
+        expect(next!.getMonth()).toBe(2) // March (0-indexed)
+        expect(next!.getDate()).toBe(15)
+      })
+
+      it('clamps Feb 29 to Feb 28 on a non-leap year', () => {
+        // 2024 is a leap year; 2025 is not
+        const base = new Date('2024-02-29T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'yearly' }, base)
+        expect(next!.getFullYear()).toBe(2025)
+        expect(next!.getMonth()).toBe(1) // February
+        expect(next!.getDate()).toBe(28)
+      })
+
+      it('handles Dec 31 rollover correctly', () => {
+        const base = new Date('2024-12-31T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'yearly' }, base)
+        expect(next!.getFullYear()).toBe(2025)
+        expect(next!.getMonth()).toBe(11) // December
+        expect(next!.getDate()).toBe(31)
+      })
+    })
+
+    describe('weekly_on_day', () => {
+      it('advances to next Wednesday when base is Monday (mask=Wed=8)', () => {
+        // 2024-01-15 is a Monday; next Wednesday = 2024-01-17
+        const base = new Date('2024-01-15T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'weekly_on_day', weekdayMask: 0b0001000 }, base) // Wed = 1<<3
+        expect(next!.toISOString().startsWith('2024-01-17')).toBe(true)
+      })
+
+      it('advances to the *next* occurrence of the same weekday (full week forward)', () => {
+        // 2024-01-15 is Monday; next Monday = 2024-01-22
+        const base = new Date('2024-01-15T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'weekly_on_day', weekdayMask: 0b0000010 }, base) // Mon = 1<<1
+        expect(next!.toISOString().startsWith('2024-01-22')).toBe(true)
+      })
+
+      it('advances to next Friday from Wednesday (mask=Fri=32)', () => {
+        // 2024-01-17 is Wednesday; next Friday = 2024-01-19
+        const base = new Date('2024-01-17T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'weekly_on_day', weekdayMask: 0b0100000 }, base) // Fri = 1<<5
+        expect(next!.toISOString().startsWith('2024-01-19')).toBe(true)
+      })
+
+      it('defaults to Monday when weekdayMask is not provided', () => {
+        // 2024-01-15 is Monday; next Monday = 2024-01-22
+        const base = new Date('2024-01-15T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'weekly_on_day' }, base)
+        expect(next!.toISOString().startsWith('2024-01-22')).toBe(true)
+      })
+
+      it('throws when weekdayMask is 0', () => {
+        expect(() =>
+          svc.computeNextDueDate({ type: 'weekly_on_day', weekdayMask: 0 }, new Date())
         ).toThrow()
       })
     })

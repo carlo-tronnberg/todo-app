@@ -12,7 +12,14 @@ export interface AuthenticatedRequest extends FastifyRequest {
   user: JwtPayload
 }
 
-export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly_on_day' | 'custom_days'
+export type RecurrenceType =
+  | 'none'
+  | 'daily'
+  | 'weekly'
+  | 'monthly_on_day'
+  | 'custom_days'
+  | 'yearly'
+  | 'weekly_on_day'
 
 export interface RecurrenceRuleInput {
   type: RecurrenceType

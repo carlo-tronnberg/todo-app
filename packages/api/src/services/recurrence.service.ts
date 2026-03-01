@@ -1,4 +1,4 @@
-import { addDays, addMonths, setDate } from 'date-fns'
+import { addDays, addMonths, addYears, setDate, getDaysInMonth } from 'date-fns'
 import { RecurrenceType } from '../types'
 
 export interface RecurrenceRule {
@@ -30,13 +30,19 @@ export class RecurrenceService {
       case 'weekly':
         return this.nextWeeklyDate(base, rule.weekdayMask ?? 0b1111111)
 
+      case 'weekly_on_day': {
+        // Exactly one weekday bit expected. Fall back to Monday (bit 1) if unset.
+        const mask = rule.weekdayMask ?? 0b0000010
+        if (mask === 0) throw new Error('weekdayMask must have at least one day set')
+        return this.nextWeeklyDate(base, mask)
+      }
+
       case 'monthly_on_day': {
         const targetDay = rule.dayOfMonth ?? 1
-        // Move one month forward then set the target day
+        // Move one month forward then set the target day,
+        // clamping to the last day of the month (handles e.g. day=31 in February)
         const next = addMonths(base, 1)
-        // Clamp to last day of month to handle e.g. day=31 in February
-        const daysInMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()
-        return setDate(next, Math.min(targetDay, daysInMonth))
+        return setDate(next, Math.min(targetDay, getDaysInMonth(next)))
       }
 
       case 'custom_days': {
@@ -44,6 +50,11 @@ export class RecurrenceService {
         if (interval < 1) throw new Error('intervalDays must be >= 1')
         return addDays(base, interval)
       }
+
+      case 'yearly':
+        // Same month+day, one year later.
+        // date-fns addYears automatically clamps Feb-29 → Feb-28 on non-leap years.
+        return addYears(base, 1)
 
       default:
         return null
@@ -53,12 +64,12 @@ export class RecurrenceService {
   private nextWeeklyDate(from: Date, weekdayMask: number): Date {
     if (weekdayMask === 0) throw new Error('weekdayMask must have at least one day set')
     let next = addDays(from, 1)
-    // Advance until we hit a day whose bit is set
+    // Advance until we hit a day whose bit is set (Sun=bit0, Mon=bit1, …, Sat=bit6)
     for (let i = 0; i < 7; i++) {
       if (weekdayMask & (1 << next.getDay())) return next
       next = addDays(next, 1)
     }
-    // Fallback: should never reach here with valid mask
+    // Fallback: should never reach here with a valid mask
     return next
   }
 }

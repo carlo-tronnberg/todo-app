@@ -1,4 +1,4 @@
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { Database, todoItems, recurrenceRules, todoLists, completions } from '../db'
 import { RecurrenceRuleInput } from '../types'
 import { parseDateOrNull } from '../utils/date'
@@ -86,7 +86,9 @@ export class ItemsService {
       })
       .returning()
 
-    return item
+    // Return the full item including the joined recurrenceRule so callers
+    // don't need a second round-trip to get the populated rule object.
+    return this.findById(item.id, userId)
   }
 
   async update(id: string, userId: string, input: UpdateItemInput) {
@@ -151,7 +153,10 @@ export class ItemsService {
       .where(eq(todoItems.id, id))
       .returning()
 
-    return updated ?? null
+    if (!updated) return null
+
+    // Return the full item including the (possibly changed) recurrenceRule.
+    return this.findById(id, userId)
   }
 
   async archive(id: string, userId: string) {
@@ -195,9 +200,6 @@ export class ItemsService {
     const item = await this.findById(itemId, userId)
     if (!item) return null
 
-    return this.db
-      .select()
-      .from(completions)
-      .where(eq(completions.itemId, itemId))
+    return this.db.select().from(completions).where(eq(completions.itemId, itemId))
   }
 }

@@ -7,6 +7,7 @@ import { authRoutes } from './routes/auth'
 import { listsRoutes } from './routes/lists'
 import { itemsRoutes } from './routes/items'
 import { calendarRoutes } from './routes/calendar'
+import { completionsRoutes } from './routes/completions'
 
 export async function buildApp(opts: { logger?: boolean } = {}) {
   const app = Fastify({
@@ -24,6 +25,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(listsRoutes, { prefix: '/api/lists' })
   await app.register(itemsRoutes, { prefix: '/api/items' })
   await app.register(calendarRoutes, { prefix: '/api/calendar' })
+  await app.register(completionsRoutes, { prefix: '/api/completions' })
 
   // Health check
   app.get('/health', async () => ({

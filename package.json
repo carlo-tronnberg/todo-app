@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --ext .ts,.vue --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky",
+    "prepare": "node --eval \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "changeset publish",

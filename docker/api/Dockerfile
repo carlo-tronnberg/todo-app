@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 COPY packages/api/package.json ./packages/api/
 
 # Install all workspace deps (including devDeps for build)
-RUN npm ci --workspace=packages/api
+RUN HUSKY=0 npm ci --workspace=packages/api
 
 # Copy source
 COPY packages/api ./packages/api
@@ -28,7 +28,7 @@ COPY package.json package-lock.json ./
 COPY packages/api/package.json ./packages/api/
 
 # Install production dependencies only
-RUN npm ci --workspace=packages/api --omit=dev
+RUN HUSKY=0 npm ci --workspace=packages/api --omit=dev
 
 # Copy compiled output
 COPY --from=builder /app/packages/api/dist ./packages/api/dist

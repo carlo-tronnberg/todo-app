@@ -17,7 +17,9 @@ export const recurrenceTypeEnum = pgEnum('recurrence_type', [
   'daily',
   'weekly',
   'monthly_on_day', // every month on a specific day (1–31)
-  'custom_days', // every N days from anchor date
+  'custom_days', // every N days
+  'yearly', // every year on the same month+day
+  'weekly_on_day', // every week on a specific single weekday (weekdayMask holds one bit)
 ])
 
 // ── users ─────────────────────────────────────────────────────────────────────

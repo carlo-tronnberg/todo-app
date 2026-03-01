@@ -2,13 +2,27 @@
   <div id="app-root">
     <nav v-if="auth.isAuthenticated" class="nav-bar">
       <div class="nav-content">
-        <span class="nav-brand">Todo Tracker</span>
+        <span class="nav-brand">📋 Todo Tracker</span>
+
         <div class="nav-links">
           <router-link to="/">Lists</router-link>
           <router-link to="/calendar">Calendar</router-link>
         </div>
+
         <div class="nav-user">
-          <span class="nav-username">{{ auth.user?.username }}</span>
+          <span class="nav-username hide-mobile">{{ auth.user?.username }}</span>
+
+          <!-- Dark mode toggle -->
+          <button
+            class="btn-icon"
+            :title="theme.isDark.value ? 'Switch to light mode' : 'Switch to dark mode'"
+            :aria-label="theme.isDark.value ? 'Switch to light mode' : 'Switch to dark mode'"
+            @click="theme.toggleDark()"
+          >
+            <span v-if="theme.isDark.value">☀️</span>
+            <span v-else>🌙</span>
+          </button>
+
           <button class="btn-ghost" @click="auth.logout()">Logout</button>
         </div>
       </div>
@@ -23,8 +37,10 @@
 <script setup lang="ts">
   import { onMounted } from 'vue'
   import { useAuthStore } from './stores/auth.store'
+  import { useTheme } from './composables/useTheme'
 
   const auth = useAuthStore()
+  const theme = useTheme()
 
   onMounted(() => {
     auth.fetchMe()
@@ -40,6 +56,11 @@
     top: 0;
     z-index: 100;
   }
+
+  [data-theme='dark'] .nav-bar {
+    background: #1e3a5f;
+  }
+
   .nav-content {
     max-width: 1200px;
     margin: 0 auto;
@@ -51,6 +72,7 @@
   .nav-brand {
     font-weight: 700;
     font-size: 1.1rem;
+    white-space: nowrap;
   }
   .nav-links {
     display: flex;
@@ -72,12 +94,36 @@
   .nav-user {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
   .nav-username {
     font-size: 0.9rem;
     opacity: 0.9;
   }
+
+  /* Dark mode toggle icon button */
+  .btn-icon {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
   .btn-ghost {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.5);

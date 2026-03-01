@@ -52,8 +52,9 @@
     try {
       await auth.register(form.value.email, form.value.username, form.value.password)
       router.push('/')
-    } catch (e: any) {
-      errorMsg.value = e?.response?.data?.message ?? 'Registration failed'
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      errorMsg.value = err?.response?.data?.message ?? 'Registration failed'
     } finally {
       loading.value = false
     }
@@ -82,6 +83,6 @@
     text-align: center;
     margin-top: 1rem;
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--color-text-muted);
   }
 </style>

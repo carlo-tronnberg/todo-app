@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: todo_user
       POSTGRES_PASSWORD: todo_pass
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +21,7 @@ services:
     build:
       context: ..
       dockerfile: docker/api/Dockerfile
-      target: builder        # use builder stage so tsx hot-reload works
+      target: builder # use builder stage so tsx hot-reload works
     command: npm run dev --workspace=packages/api
     volumes:
       - ../packages/api/src:/app/packages/api/src:ro
@@ -40,13 +40,15 @@ services:
   web:
     image: node:20-alpine
     working_dir: /app
-    command: npm run dev --workspace=packages/web -- --host 0.0.0.0
+    command: sh -c "HUSKY=0 npm ci --workspace=packages/web && npm run dev --workspace=packages/web -- --host 0.0.0.0"
     volumes:
-      - ..:/app:ro
+      - ..:/app
       - /app/node_modules
       - /app/packages/web/node_modules
+      - /app/packages/api/node_modules
     environment:
       VITE_API_BASE_URL: http://localhost:3000
+      API_PROXY_TARGET: http://api:3000
     ports:
       - '5173:5173'
 

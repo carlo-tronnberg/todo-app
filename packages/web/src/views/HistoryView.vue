@@ -18,8 +18,35 @@
           <strong>Was due:</strong> {{ formatDate(c.dueDateSnapshot) }}
         </div>
         <div v-if="c.note" class="history-note">{{ c.note }}</div>
+        <div class="history-actions">
+          <button class="btn btn-secondary btn-sm" @click="openUndoModal(c)">Undo</button>
+        </div>
       </div>
     </div>
+
+    <!-- Undo confirmation modal -->
+    <Teleport to="body">
+      <div v-if="undoTarget" class="modal-overlay" @click.self="undoTarget = null">
+        <div class="modal card">
+          <h2>Undo completion?</h2>
+          <p>
+            Remove the completion recorded on
+            <strong>{{ formatDateTime(undoTarget.completedAt) }}</strong
+            >?
+          </p>
+          <p v-if="undoTarget.dueDateSnapshot" class="modal-hint">
+            If this is the latest completion and the task is recurring, the due date will be
+            reverted to {{ formatDate(undoTarget.dueDateSnapshot) }}.
+          </p>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" @click="undoTarget = null">Cancel</button>
+            <button class="btn btn-danger" :disabled="undoing" @click="confirmUndo">
+              {{ undoing ? 'Undoing…' : 'Undo completion' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -36,6 +63,10 @@
 
   const completions = ref<Completion[]>([])
   const loading = ref(true)
+
+  // Undo state
+  const undoTarget = ref<Completion | null>(null)
+  const undoing = ref(false)
 
   onMounted(async () => {
     try {
@@ -55,12 +86,29 @@
   function formatDate(iso: string) {
     return format(parseISO(iso), 'dd MMM yyyy')
   }
+
+  function openUndoModal(completion: Completion) {
+    undoTarget.value = completion
+  }
+
+  async function confirmUndo() {
+    if (!undoTarget.value) return
+    undoing.value = true
+    try {
+      await itemsApi.deleteCompletion(undoTarget.value.id)
+      // Remove from list immediately
+      completions.value = completions.value.filter((c) => c.id !== undoTarget.value!.id)
+      undoTarget.value = null
+    } finally {
+      undoing.value = false
+    }
+  }
 </script>
 
 <style scoped>
   .back-link {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--color-text-muted);
     display: block;
     margin-bottom: 0.5rem;
   }
@@ -71,29 +119,84 @@
   }
   .history-entry {
     font-size: 0.9rem;
+    color: var(--color-text);
   }
   .history-when {
     margin-bottom: 0.25rem;
   }
   .history-due {
-    color: #64748b;
+    color: var(--color-text-muted);
   }
   .history-note {
     margin-top: 0.5rem;
-    background: #f8fafc;
-    border-left: 3px solid #e2e8f0;
+    background: var(--color-surface-sunken);
+    border-left: 3px solid var(--color-border);
     padding: 0.4rem 0.75rem;
     border-radius: 0 4px 4px 0;
     font-style: italic;
+    color: var(--color-text-muted);
+  }
+  .history-actions {
+    margin-top: 0.6rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .btn-sm {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.65rem;
   }
   .empty-state {
     text-align: center;
     padding: 3rem;
-    color: #64748b;
+    color: var(--color-text-muted);
   }
   .loading {
     text-align: center;
     padding: 2rem;
-    color: #94a3b8;
+    color: var(--color-text-faint);
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 1rem;
+  }
+  .modal {
+    max-width: 420px;
+    width: 100%;
+    animation: modal-in 0.15s ease;
+  }
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .modal h2 {
+    margin-top: 0;
+    font-size: 1.15rem;
+  }
+  .modal p {
+    margin: 0.5rem 0;
+  }
+  .modal-hint {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
   }
 </style>

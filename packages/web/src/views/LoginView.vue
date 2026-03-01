@@ -30,9 +30,7 @@
           {{ loading ? 'Signing in…' : 'Sign In' }}
         </button>
       </form>
-      <p class="auth-footer">
-        No account? <router-link to="/register">Register</router-link>
-      </p>
+      <p class="auth-footer">No account? <router-link to="/register">Register</router-link></p>
     </div>
   </div>
 </template>
@@ -85,6 +83,6 @@
     text-align: center;
     margin-top: 1rem;
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--color-text-muted);
   }
 </style>

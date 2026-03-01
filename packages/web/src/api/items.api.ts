@@ -14,4 +14,7 @@ export const itemsApi = {
 
   getCompletions: (id: string) =>
     apiClient.get<Completion[]>(`/items/${id}/completions`).then((r) => r.data),
+
+  /** Undo a completion. Deletes the record and reverts dueDate for recurring items. */
+  deleteCompletion: (completionId: string) => apiClient.delete(`/completions/${completionId}`),
 }

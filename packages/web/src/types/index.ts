@@ -1,4 +1,11 @@
-export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly_on_day' | 'custom_days'
+export type RecurrenceType =
+  | 'none'
+  | 'daily'
+  | 'weekly'
+  | 'monthly_on_day'
+  | 'custom_days'
+  | 'yearly'
+  | 'weekly_on_day'
 
 export type UrgencyLevel = 'none' | 'low' | 'medium' | 'high' | 'overdue'
 
@@ -53,4 +60,23 @@ export interface Completion {
 export interface CalendarItem extends TodoItem {
   listTitle: string
   listId: string
+}
+
+export interface CalendarCompletion {
+  id: string
+  itemId: string
+  completedAt: string
+  dueDateSnapshot: string | null
+  note: string | null
+  itemTitle: string
+  itemDescription: string | null
+  listId: string
+  listTitle: string
+  /** True when this is the most recent completion – undo can safely revert dueDate */
+  isLatestCompletion: boolean
+}
+
+export interface CalendarResponse {
+  items: CalendarItem[]
+  completions: CalendarCompletion[]
 }
