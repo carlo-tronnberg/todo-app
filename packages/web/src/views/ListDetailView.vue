@@ -74,6 +74,21 @@
       <div class="modal card">
         <h2>{{ editingItem ? 'Edit Item' : 'New Item' }}</h2>
         <form @submit.prevent="handleSaveItem">
+          <!-- Move to another list (edit only) — shown at top -->
+          <div v-if="editingItem && listsStore.lists.length > 1" class="form-group">
+            <label class="form-label">List</label>
+            <select v-model="form.moveToListId" class="form-input">
+              <option value="">— {{ list?.title }} (current) —</option>
+              <option
+                v-for="l in listsStore.lists.filter((l) => l.id !== listId)"
+                :key="l.id"
+                :value="l.id"
+              >
+                {{ l.title }}
+              </option>
+            </select>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Title *</label>
             <input v-model="form.title" type="text" class="form-input" required autofocus />
@@ -92,20 +107,8 @@
             </div>
             <textarea v-model="form.description" class="form-input" rows="2" />
           </div>
-          <div class="form-group">
-            <div class="form-label-row">
-              <label class="form-label">Due Date</label>
-              <button
-                v-if="form.dueDate"
-                type="button"
-                class="form-clear-btn"
-                @click="form.dueDate = ''"
-              >
-                ✕ Clear
-              </button>
-            </div>
-            <input v-model="form.dueDate" type="date" class="form-input" />
-          </div>
+
+          <!-- Start date | Start time -->
           <div class="form-group form-row">
             <div class="form-group-half">
               <div class="form-label-row">
@@ -126,11 +129,31 @@
               <input v-model="form.startTime" type="time" class="form-input" />
             </div>
           </div>
+
+          <!-- Due date | End time -->
           <div class="form-group form-row">
+            <div class="form-group-half">
+              <div class="form-label-row">
+                <label class="form-label">Due date</label>
+                <button
+                  v-if="form.dueDate"
+                  type="button"
+                  class="form-clear-btn"
+                  @click="form.dueDate = ''"
+                >
+                  ✕ Clear
+                </button>
+              </div>
+              <input v-model="form.dueDate" type="date" class="form-input" />
+            </div>
             <div class="form-group-half">
               <label class="form-label">End time</label>
               <input v-model="form.endTime" type="time" class="form-input" />
             </div>
+          </div>
+
+          <!-- Amount | Currency -->
+          <div class="form-group form-row">
             <div class="form-group-half">
               <label class="form-label">Amount</label>
               <input
@@ -142,18 +165,19 @@
                 placeholder="0.00"
               />
             </div>
+            <div class="form-group-half">
+              <label class="form-label">Currency</label>
+              <select v-model="form.currency" class="form-input">
+                <option value="">— None —</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="SEK">SEK</option>
+                <option value="DKK">DKK</option>
+                <option value="HUF">HUF</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Currency</label>
-            <select v-model="form.currency" class="form-input" style="max-width: 120px">
-              <option value="">— None —</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="SEK">SEK</option>
-              <option value="DKK">DKK</option>
-              <option value="HUF">HUF</option>
-            </select>
-          </div>
+
           <div class="form-group">
             <label class="form-label">Recurrence</label>
             <select v-model="form.recurrenceType" class="form-input">
@@ -194,21 +218,6 @@
           <div v-if="form.recurrenceType === 'custom_days'" class="form-group">
             <label class="form-label">Interval (days)</label>
             <input v-model.number="form.intervalDays" type="number" min="1" class="form-input" />
-          </div>
-
-          <!-- Move to another list (edit only) -->
-          <div v-if="editingItem && listsStore.lists.length > 1" class="form-group">
-            <label class="form-label">Move to list</label>
-            <select v-model="form.moveToListId" class="form-input">
-              <option value="">— Stay in current list —</option>
-              <option
-                v-for="l in listsStore.lists.filter((l) => l.id !== listId)"
-                :key="l.id"
-                :value="l.id"
-              >
-                {{ l.title }}
-              </option>
-            </select>
           </div>
 
           <p v-if="saveError" class="form-error">{{ saveError }}</p>
