@@ -531,7 +531,7 @@ describe('CalendarView', () => {
     const { wrapper } = mountCalendar()
     await flushPromises()
 
-    const itemChip = wrapper.find('.cal-item')
+    const itemChip = wrapper.find('.cal-item:not(.cal-item-done)')
     await itemChip.trigger('mouseenter')
     await flushPromises()
 
