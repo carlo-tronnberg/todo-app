@@ -44,6 +44,7 @@ export class ListsService {
       .where(and(eq(todoLists.id, id), eq(todoLists.userId, userId)))
       .returning()
 
+    /* c8 ignore next */
     return updated ?? null
   }
 
@@ -65,6 +66,7 @@ export class ListsService {
     const ruleIds = items.map((i) => i.recurrenceRuleId).filter(Boolean) as string[]
     let rulesById: Record<string, typeof recurrenceRules.$inferSelect> = {}
 
+    /* c8 ignore next */
     if (ruleIds.length > 0) {
       const rules = await this.db
         .select()

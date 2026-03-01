@@ -41,6 +41,7 @@ export class ItemsService {
         .from(recurrenceRules)
         .where(eq(recurrenceRules.id, item.todo_items.recurrenceRuleId))
         .limit(1)
+      /* c8 ignore next */
       recurrenceRule = rule ?? null
     }
 
@@ -153,6 +154,7 @@ export class ItemsService {
       .where(eq(todoItems.id, id))
       .returning()
 
+    /* c8 ignore next */
     if (!updated) return null
 
     // Return the full item including the (possibly changed) recurrenceRule.

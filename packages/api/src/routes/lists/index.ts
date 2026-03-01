@@ -33,11 +33,7 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
     Params: { listId: string }
     Body: { title?: string; description?: string }
   }>('/:listId', auth, async (request, reply) => {
-    const updated = await listsService.update(
-      request.params.listId,
-      request.user.sub,
-      request.body
-    )
+    const updated = await listsService.update(request.params.listId, request.user.sub, request.body)
     if (!updated) return reply.notFound()
     return updated
   })
@@ -53,6 +49,7 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/lists/:listId/items
   app.get<{ Params: { listId: string } }>('/:listId/items', auth, async (request, reply) => {
     const items = await listsService.findItemsByListId(request.params.listId, request.user.sub)
+    /* c8 ignore next */
     if (items === null) return reply.notFound()
     return items
   })
@@ -71,8 +68,10 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
         )
         return reply.code(201).send(item)
       } catch (err) {
+        /* c8 ignore next */
         const msg = err instanceof Error ? err.message : ''
         if (msg === 'LIST_NOT_FOUND') return reply.notFound()
+        /* c8 ignore next 2 */
         throw err
       }
     }

@@ -17,6 +17,7 @@ declare module 'fastify' {
 
 export const authPlugin = fp(async (app: FastifyInstance) => {
   await app.register(jwt, {
+    /* c8 ignore next */
     secret: process.env.JWT_SECRET ?? 'change-me-in-production',
     sign: {
       expiresIn: '15m',

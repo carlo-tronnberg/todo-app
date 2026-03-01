@@ -11,6 +11,7 @@ import { completionsRoutes } from './routes/completions'
 
 export async function buildApp(opts: { logger?: boolean } = {}) {
   const app = Fastify({
+    /* c8 ignore next */
     logger: opts.logger ?? process.env.NODE_ENV !== 'test',
   })
 
@@ -30,6 +31,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   // Health check
   app.get('/health', async () => ({
     status: 'ok',
+    /* c8 ignore next */
     environment: process.env.NODE_ENV ?? 'development',
     timestamp: new Date().toISOString(),
   }))

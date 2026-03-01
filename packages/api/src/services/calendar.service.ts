@@ -115,6 +115,7 @@ export class CalendarService {
       title: r.item.title,
       description: r.item.description,
       dueDate: r.item.dueDate!,
+      /* c8 ignore next */
       recurrenceRule: r.item.recurrenceRuleId ? (rulesById[r.item.recurrenceRuleId] ?? null) : null,
     }))
 

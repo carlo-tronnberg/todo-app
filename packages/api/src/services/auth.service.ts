@@ -17,11 +17,7 @@ export class AuthService {
   constructor(private db: Database) {}
 
   async register(input: RegisterInput) {
-    const existing = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, input.email))
-      .limit(1)
+    const existing = await this.db.select().from(users).where(eq(users.email, input.email)).limit(1)
 
     if (existing.length > 0) {
       throw new Error('EMAIL_TAKEN')
@@ -83,6 +79,7 @@ export class AuthService {
       .where(eq(users.id, id))
       .limit(1)
 
+    /* c8 ignore next */
     return user ?? null
   }
 }

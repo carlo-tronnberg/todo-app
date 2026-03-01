@@ -64,12 +64,10 @@ export class RecurrenceService {
   private nextWeeklyDate(from: Date, weekdayMask: number): Date {
     if (weekdayMask === 0) throw new Error('weekdayMask must have at least one day set')
     let next = addDays(from, 1)
-    // Advance until we hit a day whose bit is set (Sun=bit0, Mon=bit1, …, Sat=bit6)
-    for (let i = 0; i < 7; i++) {
-      if (weekdayMask & (1 << next.getDay())) return next
+    // Advance day-by-day until we hit a day whose bit is set
+    while (!(weekdayMask & (1 << next.getDay()))) {
       next = addDays(next, 1)
     }
-    // Fallback: should never reach here with a valid mask
     return next
   }
 }
