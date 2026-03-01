@@ -25,14 +25,14 @@ describe('Lists Routes', () => {
 
   afterAll(closeTestApp)
 
-  const authHeaders = () => ({ authorization: `Bearer ${token}` })
+  const auth = () => ({ authorization: `Bearer ${token}` })
 
   describe('POST /api/lists', () => {
     it('creates a new list', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/lists',
-        headers: authHeaders(),
+        headers: auth(),
         payload: { title: 'My Bills', description: 'Monthly bill payments' },
       })
       expect(res.statusCode).toBe(201)
@@ -45,7 +45,7 @@ describe('Lists Routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/lists',
-        headers: authHeaders(),
+        headers: auth(),
         payload: {},
       })
       expect(res.statusCode).toBe(400)
@@ -57,7 +57,7 @@ describe('Lists Routes', () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/lists',
-        headers: authHeaders(),
+        headers: auth(),
       })
       expect(res.statusCode).toBe(200)
       expect(Array.isArray(res.json())).toBe(true)
@@ -71,7 +71,7 @@ describe('Lists Routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/lists',
-        headers: authHeaders(),
+        headers: auth(),
         payload: { title: 'Recurring Tasks' },
       })
       listId = res.json().id
@@ -81,7 +81,7 @@ describe('Lists Routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: `/api/lists/${listId}/items`,
-        headers: authHeaders(),
+        headers: auth(),
         payload: {
           title: 'Pay electricity bill',
           dueDate: '2024-01-15T00:00:00Z',
@@ -96,7 +96,7 @@ describe('Lists Routes', () => {
       const res = await app.inject({
         method: 'GET',
         url: `/api/lists/${listId}/items`,
-        headers: authHeaders(),
+        headers: auth(),
       })
       expect(res.statusCode).toBe(200)
       expect(Array.isArray(res.json())).toBe(true)

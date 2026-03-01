@@ -1,5 +1,12 @@
 import { beforeAll, afterAll } from 'vitest'
 
+// Load .env so TEST_DATABASE_URL etc. are available (Node 20.12+ built-in)
+try {
+  process.loadEnvFile()
+} catch {
+  /* ignore if .env is absent */
+}
+
 // Set test environment variables before anything imports the DB
 process.env.NODE_ENV = 'test'
 process.env.DATABASE_URL =

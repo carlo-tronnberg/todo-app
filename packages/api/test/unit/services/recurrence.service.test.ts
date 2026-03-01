@@ -63,6 +63,14 @@ describe('RecurrenceService', () => {
           svc.computeNextDueDate({ type: 'weekly', weekdayMask: 0 }, new Date())
         ).toThrow()
       })
+
+      it('uses all-days mask when weekdayMask is not provided (covers ?? 0b1111111 fallback)', () => {
+        // 2024-01-15 is Monday; without a mask, all days are set so next day (Tuesday) is returned
+        const base = new Date('2024-01-15T10:00:00Z')
+        const next = svc.computeNextDueDate({ type: 'weekly' }, base)
+        // With all days enabled, next should be 2024-01-16 (Tuesday)
+        expect(next!.toISOString().startsWith('2024-01-16')).toBe(true)
+      })
     })
 
     describe('monthly_on_day', () => {

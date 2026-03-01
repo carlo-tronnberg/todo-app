@@ -225,6 +225,17 @@ describe('generateIcs', () => {
       expect(prop(event, 'RRULE')).toContain('FREQ=WEEKLY')
     })
 
+    it('weekly with mask=0 falls back to MO', () => {
+      const item = {
+        id: '1',
+        title: 'T',
+        dueDate,
+        recurrenceRule: { type: 'weekly' as const, weekdayMask: 0 },
+      }
+      const [event] = extractEvents(generateIcs([item]))
+      expect(prop(event, 'RRULE')).toBe('FREQ=WEEKLY;BYDAY=MO')
+    })
+
     it('weekly_on_day with Wednesday (mask=8) → FREQ=WEEKLY;BYDAY=WE', () => {
       const item = {
         id: '1',
@@ -242,6 +253,17 @@ describe('generateIcs', () => {
         title: 'T',
         dueDate,
         recurrenceRule: { type: 'weekly_on_day' as const },
+      }
+      const [event] = extractEvents(generateIcs([item]))
+      expect(prop(event, 'RRULE')).toBe('FREQ=WEEKLY;BYDAY=MO')
+    })
+
+    it('weekly_on_day with mask=0 falls back to MO', () => {
+      const item = {
+        id: '1',
+        title: 'T',
+        dueDate,
+        recurrenceRule: { type: 'weekly_on_day' as const, weekdayMask: 0 },
       }
       const [event] = extractEvents(generateIcs([item]))
       expect(prop(event, 'RRULE')).toBe('FREQ=WEEKLY;BYDAY=MO')
