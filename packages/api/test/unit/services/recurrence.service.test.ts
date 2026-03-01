@@ -110,6 +110,15 @@ describe('RecurrenceService', () => {
       })
     })
 
+    describe('unknown type (defensive default branch)', () => {
+      it('returns null for an unrecognised recurrence type', () => {
+        // TypeScript won't allow an invalid literal, so we cast through unknown.
+        const unknownRule = { type: 'biweekly' as unknown as 'daily' }
+        const result = svc.computeNextDueDate(unknownRule, new Date('2024-01-15'))
+        expect(result).toBeNull()
+      })
+    })
+
     describe('yearly', () => {
       it('advances exactly one year on a standard date', () => {
         const base = new Date('2024-03-15T10:00:00Z')
