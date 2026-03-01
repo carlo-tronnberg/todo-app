@@ -74,17 +74,12 @@
       <div class="modal card">
         <h2>{{ editingItem ? 'Edit Item' : 'New Item' }}</h2>
         <form @submit.prevent="handleSaveItem">
-          <!-- Move to another list (edit only) — shown at top -->
-          <div v-if="editingItem && listsStore.lists.length > 1" class="form-group">
+          <!-- List selector — shown in both add and edit when multiple lists exist -->
+          <div v-if="listsStore.lists.length > 1" class="form-group">
             <label class="form-label">List</label>
-            <select v-model="form.moveToListId" class="form-input">
-              <option value="">— {{ list?.title }} (current) —</option>
-              <option
-                v-for="l in listsStore.lists.filter((l) => l.id !== listId)"
-                :key="l.id"
-                :value="l.id"
-              >
-                {{ l.title }}
+            <select v-model="form.targetListId" class="form-input">
+              <option v-for="l in listsStore.lists" :key="l.id" :value="l.id">
+                {{ l.title }}{{ l.id === listId ? ' ✓' : '' }}
               </option>
             </select>
           </div>
@@ -93,6 +88,7 @@
             <label class="form-label">Title *</label>
             <input v-model="form.title" type="text" class="form-input" required autofocus />
           </div>
+
           <div class="form-group">
             <div class="form-label-row">
               <label class="form-label">Description</label>
@@ -109,8 +105,8 @@
           </div>
 
           <!-- Start date | Start time -->
-          <div class="form-group form-row">
-            <div class="form-group-half">
+          <div class="form-row">
+            <div class="form-col">
               <div class="form-label-row">
                 <label class="form-label">Start date</label>
                 <button
@@ -124,15 +120,15 @@
               </div>
               <input v-model="form.startDate" type="date" class="form-input" />
             </div>
-            <div class="form-group-half">
+            <div class="form-col">
               <label class="form-label">Start time</label>
               <input v-model="form.startTime" type="time" class="form-input" />
             </div>
           </div>
 
           <!-- Due date | End time -->
-          <div class="form-group form-row">
-            <div class="form-group-half">
+          <div class="form-row">
+            <div class="form-col">
               <div class="form-label-row">
                 <label class="form-label">Due date</label>
                 <button
@@ -146,15 +142,15 @@
               </div>
               <input v-model="form.dueDate" type="date" class="form-input" />
             </div>
-            <div class="form-group-half">
+            <div class="form-col">
               <label class="form-label">End time</label>
               <input v-model="form.endTime" type="time" class="form-input" />
             </div>
           </div>
 
           <!-- Amount | Currency -->
-          <div class="form-group form-row">
-            <div class="form-group-half">
+          <div class="form-row">
+            <div class="form-col">
               <label class="form-label">Amount</label>
               <input
                 v-model="form.amount"
@@ -165,7 +161,7 @@
                 placeholder="0.00"
               />
             </div>
-            <div class="form-group-half">
+            <div class="form-col">
               <label class="form-label">Currency</label>
               <select v-model="form.currency" class="form-input">
                 <option value="">— None —</option>
@@ -334,7 +330,7 @@
     dayOfMonth: 1,
     intervalDays: 30,
     weekdayMask: 2, // Monday by default
-    moveToListId: '' as string,
+    targetListId: listId,
   })
 
   const form = ref(BLANK_FORM())
@@ -398,7 +394,7 @@
       dayOfMonth: item.recurrenceRule?.dayOfMonth ?? 1,
       intervalDays: item.recurrenceRule?.intervalDays ?? 30,
       weekdayMask: item.recurrenceRule?.weekdayMask ?? 2, // default Monday
-      moveToListId: '',
+      targetListId: item.listId,
     }
   }
 
@@ -472,16 +468,19 @@
       }
 
       if (isEdit) {
-        if (form.value.moveToListId) payload.listId = form.value.moveToListId
+        const movingList = form.value.targetListId !== listId
+        if (movingList) payload.listId = form.value.targetListId
         await itemsStore.updateItem(listId, editingItem.value!.id, payload as Partial<TodoItem>)
-        // If moved to another list, remove from current list's local state
-        if (form.value.moveToListId) {
+        if (movingList) {
           itemsStore.itemsByList[listId] = (itemsStore.itemsByList[listId] ?? []).filter(
             (i) => i.id !== editingItem.value!.id
           )
         }
       } else {
-        await itemsStore.createItem(listId, payload as Partial<TodoItem> & { title: string })
+        await itemsStore.createItem(
+          form.value.targetListId,
+          payload as Partial<TodoItem> & { title: string }
+        )
       }
 
       closeModal()
@@ -578,18 +577,17 @@
     margin-top: 1rem;
   }
 
-  /* Two-column form row */
+  /* Two-column form row — intentionally NOT using .form-group to avoid global flex-direction:column */
   .form-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
-    margin-bottom: 0 !important;
+    margin-bottom: 1rem;
   }
-  .form-group-half {
-    flex: 1;
+  .form-col {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    margin-bottom: 0.85rem;
   }
 
   /* Comments */
