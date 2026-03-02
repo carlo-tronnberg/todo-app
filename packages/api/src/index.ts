@@ -1,9 +1,13 @@
 import { buildApp } from './app'
+import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import { db } from './db'
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10)
 const HOST = process.env.HOST ?? '0.0.0.0'
 
 async function start() {
+  await migrate(db, { migrationsFolder: 'packages/api/src/db/migrations' })
+
   const app = await buildApp()
 
   try {

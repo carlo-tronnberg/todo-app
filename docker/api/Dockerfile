@@ -33,6 +33,9 @@ RUN HUSKY=0 npm ci --workspace=packages/api --omit=dev
 # Copy compiled output
 COPY --from=builder /app/packages/api/dist ./packages/api/dist
 
+# Copy migration SQL files (drizzle-orm migrator reads them at runtime)
+COPY --from=builder /app/packages/api/src/db/migrations ./packages/api/src/db/migrations
+
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

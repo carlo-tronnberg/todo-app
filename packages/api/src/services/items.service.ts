@@ -91,7 +91,15 @@ export class ItemsService {
     // Auto-derive first future occurrence when recurrence is set but no due date given
     let resolvedDueDate = parseDateOrNull(input.dueDate)
     if (!resolvedDueDate && input.recurrenceRule && input.recurrenceRule.type !== 'none') {
-      resolvedDueDate = recurrenceSvc.computeNextDueDate(input.recurrenceRule, null)
+      resolvedDueDate = recurrenceSvc.computeNextDueDate(
+        {
+          ...input.recurrenceRule,
+          anchorDate: input.recurrenceRule.anchorDate
+            ? new Date(input.recurrenceRule.anchorDate)
+            : undefined,
+        },
+        null
+      )
     }
 
     const [item] = await this.db
@@ -178,7 +186,15 @@ export class ItemsService {
       input.dueDate === undefined &&
       !existing.dueDate
     ) {
-      updateData.dueDate = recurrenceSvc.computeNextDueDate(input.recurrenceRule, null)
+      updateData.dueDate = recurrenceSvc.computeNextDueDate(
+        {
+          ...input.recurrenceRule,
+          anchorDate: input.recurrenceRule.anchorDate
+            ? new Date(input.recurrenceRule.anchorDate)
+            : undefined,
+        },
+        null
+      )
     }
     if (input.startDate !== undefined)
       updateData.startDate = input.startDate ? parseDateOrNull(input.startDate) : null
@@ -257,7 +273,7 @@ export class ItemsService {
           dayOfMonth: existing.recurrenceRule.dayOfMonth ?? undefined,
           intervalDays: existing.recurrenceRule.intervalDays ?? undefined,
           weekdayMask: existing.recurrenceRule.weekdayMask ?? undefined,
-          anchorDate: existing.recurrenceRule.anchorDate ?? undefined,
+          anchorDate: existing.recurrenceRule.anchorDate?.toISOString() ?? undefined,
         }
       : undefined
 
