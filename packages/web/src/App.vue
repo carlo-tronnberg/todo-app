@@ -76,18 +76,22 @@
     margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    height: 56px;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    min-height: 56px;
+    padding: 0.4rem 0;
   }
   .nav-brand {
     font-weight: 700;
     font-size: 1.1rem;
     white-space: nowrap;
+    order: 1;
   }
   .nav-links {
     display: flex;
-    gap: 1rem;
+    gap: 0.25rem;
     flex: 1;
+    order: 2;
   }
   .nav-links a {
     color: rgba(255, 255, 255, 0.85);
@@ -95,6 +99,7 @@
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     transition: background 0.15s;
+    white-space: nowrap;
   }
   .nav-links a:hover,
   .nav-links a.router-link-active {
@@ -105,6 +110,38 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    order: 3;
+    margin-left: auto;
+  }
+
+  /* ── Mobile: links move to a second row ── */
+  @media (max-width: 600px) {
+    .nav-content {
+      gap: 0;
+      padding: 0.3rem 0;
+    }
+    .nav-brand {
+      order: 1;
+      padding: 0.3rem 0;
+    }
+    .nav-user {
+      order: 2;
+      margin-left: auto;
+      padding: 0.3rem 0;
+    }
+    .nav-links {
+      order: 3;
+      width: 100%;
+      flex: none;
+      gap: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.2rem 0;
+    }
+    .nav-links a {
+      flex: 1;
+      text-align: center;
+      padding: 0.4rem 0.25rem;
+    }
   }
   .nav-username {
     font-size: 0.9rem;
@@ -156,5 +193,11 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .main-content {
+      padding: 1rem 0.75rem;
+    }
   }
 </style>

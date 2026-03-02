@@ -1559,13 +1559,23 @@
     }
     .cal-cell {
       min-height: 60px;
+      padding: 0.2rem;
     }
     .cal-item {
-      display: none;
+      font-size: 0.6rem;
+      padding: 0 2px;
+      border-radius: 3px;
+      line-height: 1.4;
     }
-    .cal-cell:has(.cal-item) .cal-date-num::after {
-      content: '•';
-      color: var(--color-primary);
+    /* Always show + on touch (no hover available) */
+    .cal-add-day-btn {
+      display: flex;
+      width: 16px;
+      height: 16px;
+      font-size: 0.7rem;
+    }
+    .cal-date-num {
+      font-size: 0.72rem;
     }
   }
 </style>

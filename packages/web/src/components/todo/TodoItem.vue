@@ -347,4 +347,11 @@
     background: var(--urgency-over-bg);
     color: var(--urgency-over-text);
   }
+
+  @media (min-width: 768px) {
+    .icon-btn {
+      font-size: 1.15rem;
+      padding: 0.35rem 0.4rem;
+    }
+  }
 </style>

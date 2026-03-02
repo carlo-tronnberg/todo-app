@@ -22,7 +22,7 @@
           @complete="handleComplete"
           @edit="handleEdit"
           @archive="handleArchive"
-          @duplicate="(id) => itemsStore.duplicateItem(listId, id)"
+          @duplicate="handleDuplicate"
         />
 
         <!-- Collapsible comments section -->
@@ -501,6 +501,30 @@
     }
   }
 
+  function handleDuplicate(itemId: string) {
+    const item = items.value.find((i) => i.id === itemId)
+    if (!item) return
+    form.value = {
+      title: `Copy of ${item.title}`,
+      description: item.description ?? '',
+      startDate: item.startDate ? item.startDate.substring(0, 10) : '',
+      startTime: item.startTime ?? '',
+      endTime: item.endTime ?? '',
+      dueDate: item.dueDate ? item.dueDate.substring(0, 10) : '',
+      amount: item.amount ?? '',
+      currency: item.currency ?? '',
+      recurrenceType: item.recurrenceRule?.type ?? 'none',
+      dayOfMonth: item.recurrenceRule?.dayOfMonth ?? 1,
+      intervalDays: item.recurrenceRule?.intervalDays ?? 30,
+      weekdayMask: item.recurrenceRule?.weekdayMask ?? 2,
+      weeklyDayBits: WEEKDAYS.filter((d) => (item.recurrenceRule?.weekdayMask ?? 0) & d.bit).map(
+        (d) => d.bit
+      ),
+      targetListId: item.listId,
+    }
+    showAddModal.value = true
+  }
+
   function handleComplete(itemId: string) {
     completingItemId.value = itemId
     completionNote.value = ''
@@ -688,6 +712,32 @@
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
     margin-bottom: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .modal {
+      max-height: 95vh;
+      padding: 0.75rem;
+    }
+    .modal h2 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .modal .form-group {
+      margin-bottom: 0.5rem;
+      gap: 0.2rem;
+    }
+    .modal .form-input {
+      padding: 0.35rem 0.5rem;
+      font-size: 0.875rem;
+    }
+    .form-row {
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .modal-actions {
+      margin-top: 0.5rem;
+    }
   }
   .form-col {
     display: flex;
