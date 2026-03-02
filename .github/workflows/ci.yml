@@ -48,7 +48,7 @@ jobs:
         run: npm ci
 
       - name: Run unit tests (API)
-        run: npx vitest run --reporter=verbose
+        run: npx vitest run --reporter=verbose test/unit
         working-directory: packages/api
         env:
           NODE_ENV: test
