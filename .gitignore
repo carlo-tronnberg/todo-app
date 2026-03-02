@@ -13,4 +13,3 @@ Thumbs.db
 *.tsbuildinfo
 .changeset/*.md
 !.changeset/config.json
-packages/api/src/db/migrations/meta/

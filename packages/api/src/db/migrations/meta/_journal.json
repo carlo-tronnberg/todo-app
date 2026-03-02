@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1772324868896,
+      "tag": "0000_slippery_young_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772324900000,
+      "tag": "0001_add_recurrence_types",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772325000000,
+      "tag": "0002_phase3_schema",
+      "breakpoints": true
+    }
+  ]
+}
