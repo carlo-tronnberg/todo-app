@@ -16,6 +16,7 @@ export const authApi = {
   me: () => apiClient.get<User>('/auth/me').then((r) => r.data),
 
   updateProfile: (data: {
+    email?: string | null
     firstName?: string | null
     lastName?: string | null
     phone?: string | null

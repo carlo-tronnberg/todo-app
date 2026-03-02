@@ -241,6 +241,137 @@ describe('Items Routes', () => {
     })
   })
 
+  describe('POST /api/lists/:listId/items — recurrence without dueDate (auto-derive)', () => {
+    it('auto-derives dueDate when recurrenceRule is set but no dueDate given', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/items`,
+        headers: auth(),
+        payload: {
+          title: 'Auto-derive due date item',
+          recurrenceRule: { type: 'monthly_on_day', dayOfMonth: 20 },
+          // no dueDate — should auto-derive
+        },
+      })
+      expect(res.statusCode).toBe(201)
+      // dueDate should have been auto-derived
+      expect(res.json().dueDate).toBeTruthy()
+    })
+  })
+
+  describe('PATCH /api/items/:itemId — recurrence auto-derive on update', () => {
+    it('auto-derives dueDate when setting recurrenceRule on item with no dueDate', async () => {
+      // Create an item with no dueDate
+      const createRes = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/items`,
+        headers: auth(),
+        payload: { title: 'No DueDate Item' },
+      })
+      const noDueDateId = createRes.json().id
+
+      // Update with recurrenceRule but no dueDate — should auto-derive
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/items/${noDueDateId}`,
+        headers: auth(),
+        payload: { recurrenceRule: { type: 'weekly', weekdayMask: 4 } },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().dueDate).toBeTruthy()
+    })
+  })
+
+  describe('POST /api/items/:itemId/duplicate', () => {
+    it('duplicates an item without recurrence and returns the copy', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/items/${itemId}/duplicate`,
+        headers: auth(),
+      })
+      expect(res.statusCode).toBe(201)
+      const body = res.json()
+      expect(body.id).not.toBe(itemId)
+      expect(body.title).toMatch(/^Copy of /)
+    })
+
+    it('duplicates an item with recurrence rule, amounts and dates', async () => {
+      // Create a rich item to duplicate
+      const richRes = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/items`,
+        headers: auth(),
+        payload: {
+          title: 'Rich Item to Duplicate',
+          description: 'some desc',
+          dueDate: '2026-05-01T00:00:00Z',
+          startDate: '2026-04-01T00:00:00Z',
+          startTime: '09:00',
+          endTime: '10:00',
+          amount: '55.00',
+          currency: 'USD',
+          colorOverride: '#aabbcc',
+          sortOrder: 3,
+          recurrenceRule: { type: 'weekly', weekdayMask: 2 },
+        },
+      })
+      const richItemId = richRes.json().id
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/items/${richItemId}/duplicate`,
+        headers: auth(),
+      })
+      expect(res.statusCode).toBe(201)
+      const copy = res.json()
+      expect(copy.id).not.toBe(richItemId)
+      expect(copy.title).toBe('Copy of Rich Item to Duplicate')
+      expect(copy.recurrenceRule).toBeTruthy()
+      expect(copy.recurrenceRule.type).toBe('weekly')
+    })
+
+    it('returns 404 for non-existent item', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/items/${missing}/duplicate`,
+        headers: auth(),
+      })
+      expect(res.statusCode).toBe(404)
+    })
+  })
+
+  describe('PATCH /api/items/:itemId — move to another list', () => {
+    it('moves the item to another list when listId is provided', async () => {
+      // Create a second list to move the item into
+      const secondListRes = await app.inject({
+        method: 'POST',
+        url: '/api/lists',
+        headers: auth(),
+        payload: { title: 'Second List for Move Test' },
+      })
+      const secondListId = secondListRes.json().id
+
+      // Create an item in the first list
+      const moveItemRes = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/items`,
+        headers: auth(),
+        payload: { title: 'Item to Move' },
+      })
+      const moveItemId = moveItemRes.json().id
+
+      // Move the item to the second list
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/items/${moveItemId}`,
+        headers: auth(),
+        payload: { listId: secondListId },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().listId).toBe(secondListId)
+    })
+  })
+
   describe('GET /api/items/:itemId/completions', () => {
     it('returns completions for the item', async () => {
       const res = await app.inject({

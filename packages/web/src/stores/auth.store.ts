@@ -33,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updateProfile(data: {
+    email?: string | null
     firstName?: string | null
     lastName?: string | null
     phone?: string | null

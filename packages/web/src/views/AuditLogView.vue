@@ -137,4 +137,23 @@
     padding: 0.75rem;
     text-align: center;
   }
+
+  @media (max-width: 600px) {
+    table {
+      font-size: 0.75rem;
+    }
+    th,
+    td {
+      padding: 0.35rem 0.5rem;
+    }
+    .audit-time {
+      font-size: 0.7rem;
+    }
+    .audit-action {
+      font-size: 0.7rem;
+    }
+    .audit-entity {
+      font-size: 0.7rem;
+    }
+  }
 </style>

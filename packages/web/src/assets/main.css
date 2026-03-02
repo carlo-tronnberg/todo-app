@@ -231,8 +231,15 @@ select {
 
 /* ── Responsive helpers ─────────────────────────────────────────────────────── */
 
+.show-mobile {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .hide-mobile {
     display: none;
+  }
+  .show-mobile {
+    display: inline;
   }
 }

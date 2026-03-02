@@ -71,7 +71,12 @@
 
     <!-- Add/Edit Item Modal -->
     <div v-if="showAddModal || editingItem" class="modal-backdrop">
-      <div class="modal card">
+      <div
+        class="modal card"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="editingItem ? 'Edit Item' : 'New Item'"
+      >
         <h2>{{ editingItem ? 'Edit Item' : 'New Item' }}</h2>
         <form @submit.prevent="handleSaveItem">
           <!-- List selector — shown in both add and edit when multiple lists exist -->
@@ -240,7 +245,7 @@
 
     <!-- Complete confirmation modal -->
     <div v-if="completingItemId" class="modal-backdrop">
-      <div class="modal card">
+      <div class="modal card" role="dialog" aria-modal="true" aria-label="Complete Item">
         <h2>Complete Item</h2>
         <p style="margin-bottom: 1rem; color: #64748b">Add an optional note for this completion:</p>
         <div class="form-group">
@@ -336,7 +341,7 @@
 
     return ''
   }
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
   import { format, parseISO } from 'date-fns'
   import { listsApi } from '../api/lists.api'
   import { itemsApi } from '../api/items.api'
@@ -347,12 +352,16 @@
   import { computeUrgencyLevel } from '../composables/useUrgency'
 
   const route = useRoute()
+  const router = useRouter()
   const itemsStore = useItemsStore()
   const listsStore = useListsStore()
   const listId = route.params.listId as string
 
-  /** Back destination: go to the calendar if we arrived from there, otherwise the dashboard */
-  const backTo = computed(() => (route.query.from === 'calendar' ? '/calendar' : '/'))
+  /** Back destination: go to the calendar (at unscheduled section) if we arrived from there */
+  const backTo = computed(() => (route.query.from === 'calendar' ? '/calendar#unscheduled' : '/'))
+
+  /** If opened via editItem query param, auto-navigate back when the modal is dismissed */
+  const autoBack = ref(false)
 
   const list = ref<TodoList | null>(null)
   const showAddModal = ref(false)
@@ -459,6 +468,17 @@
   onMounted(async () => {
     list.value = await listsApi.getOne(listId)
     await Promise.all([itemsStore.fetchItems(listId), listsStore.fetchLists()])
+
+    // Open edit modal for a specific item (from unscheduled calendar click)
+    const editItemId = route.query.editItem as string | undefined
+    if (editItemId) {
+      const item = itemsStore.getItems(listId).find((i) => i.id === editItemId)
+      if (item) {
+        handleEdit(item)
+        autoBack.value = true
+      }
+    }
+
     // Pre-fill and open the add modal when navigated here from "New item from this"
     const prefillTitle = route.query.prefillTitle as string | undefined
     if (prefillTitle) {
@@ -477,6 +497,9 @@
     showAddModal.value = false
     editingItem.value = null
     form.value = BLANK_FORM()
+    if (autoBack.value) {
+      router.push(backTo.value)
+    }
   }
 
   function handleEdit(item: TodoItem) {

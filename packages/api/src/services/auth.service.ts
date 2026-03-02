@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { Database, users } from '../db'
 import { hashPassword, verifyPassword } from '../utils/hash'
 
@@ -14,6 +14,7 @@ export interface LoginInput {
 }
 
 export interface UpdateProfileInput {
+  email?: string | null
   firstName?: string | null
   lastName?: string | null
   phone?: string | null
@@ -93,9 +94,19 @@ export class AuthService {
   }
 
   async updateProfile(id: string, input: UpdateProfileInput) {
+    if (input.email) {
+      const [conflict] = await this.db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.email, input.email), ne(users.id, id)))
+        .limit(1)
+      if (conflict) throw new Error('EMAIL_IN_USE')
+    }
+
     const [updated] = await this.db
       .update(users)
       .set({
+        ...(input.email ? { email: input.email } : {}),
         firstName: input.firstName ?? null,
         lastName: input.lastName ?? null,
         phone: input.phone ?? null,

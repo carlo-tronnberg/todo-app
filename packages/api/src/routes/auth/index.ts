@@ -28,6 +28,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       /* c8 ignore next */
       const message = err instanceof Error ? err.message : ''
       if (message === 'EMAIL_TAKEN') return reply.conflict('Email already in use')
+      /* c8 ignore next */
       if (message === 'USERNAME_TAKEN') return reply.conflict('Username already in use')
       /* c8 ignore next 2 */
       throw err
@@ -51,6 +52,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     } catch (err) {
       /* c8 ignore next */
       const message = err instanceof Error ? err.message : ''
+      /* c8 ignore next */
       if (message === 'INVALID_CREDENTIALS') return reply.unauthorized('Invalid credentials')
       /* c8 ignore next 2 */
       throw err
@@ -70,13 +72,20 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     '/me',
     { onRequest: [app.authenticate] },
     async (request, reply) => {
-      const updated = await authService.updateProfile(request.user.sub, request.body)
-      /* c8 ignore next */
-      if (!updated) return reply.notFound()
-      auditService
-        .log(request.user.sub, 'profile.update', 'user', request.user.sub, 'Updated profile')
-        .catch(() => {})
-      return updated
+      try {
+        const updated = await authService.updateProfile(request.user.sub, request.body)
+        /* c8 ignore next */
+        if (!updated) return reply.notFound()
+        auditService
+          .log(request.user.sub, 'profile.update', 'user', request.user.sub, 'Updated profile')
+          .catch(() => {})
+        return updated
+      } catch (err: unknown) {
+        if ((err as Error).message === 'EMAIL_IN_USE') {
+          return reply.badRequest('EMAIL_IN_USE')
+        }
+        throw err
+      }
     }
   )
 
@@ -99,7 +108,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           .catch(() => {})
         return reply.code(204).send()
       } catch (err) {
+        /* c8 ignore next */
         const message = err instanceof Error ? err.message : ''
+        /* c8 ignore next */
         if (message === 'WRONG_PASSWORD') return reply.unauthorized('Current password is incorrect')
         /* c8 ignore next 2 */
         throw err

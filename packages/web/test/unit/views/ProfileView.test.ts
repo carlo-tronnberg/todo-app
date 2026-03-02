@@ -5,7 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import ProfileView from '../../../src/views/ProfileView.vue'
 import { useAuthStore } from '../../../src/stores/auth.store'
 
-const { mockAuthApi } = vi.hoisted(() => ({
+const { mockAuthApi, mockBackupApi } = vi.hoisted(() => ({
   mockAuthApi: {
     login: vi.fn(),
     register: vi.fn(),
@@ -14,9 +14,14 @@ const { mockAuthApi } = vi.hoisted(() => ({
     changePassword: vi.fn(),
     getAuditLog: vi.fn(),
   },
+  mockBackupApi: {
+    download: vi.fn(),
+    restore: vi.fn(),
+  },
 }))
 
 vi.mock('../../../src/api/auth.api', () => ({ authApi: mockAuthApi }))
+vi.mock('../../../src/api/backup.api', () => ({ backupApi: mockBackupApi }))
 
 const fakeUser = {
   id: 'u1',
@@ -93,13 +98,14 @@ describe('ProfileView', () => {
       expect((tel.element as HTMLInputElement).value).toBe('+1 555 000 0001')
     })
 
-    it('shows email and username as disabled', () => {
+    it('shows email as editable and username as disabled', () => {
       seedUser()
       const { wrapper } = mountProfile()
       const emailInput = wrapper.find('input[type="email"]')
       const usernameInputs = wrapper.findAll('input[type="text"]')
-      expect(emailInput.attributes('disabled')).toBeDefined()
-      // The third text input (index 2) is username — also disabled
+      // Email is now editable
+      expect(emailInput.attributes('disabled')).toBeUndefined()
+      // Username (third text input, index 2) remains disabled
       expect(usernameInputs[2].attributes('disabled')).toBeDefined()
     })
 
@@ -272,6 +278,101 @@ describe('ProfileView', () => {
 
       resolve(undefined)
       await flushPromises()
+    })
+  })
+
+  describe('Backup & Restore section', () => {
+    it('calls backupApi.download when Download backup button is clicked', async () => {
+      seedUser()
+      mockBackupApi.download.mockResolvedValue(undefined)
+      const { wrapper } = mountProfile()
+
+      const downloadBtn = wrapper.find('button.btn-secondary')
+      await downloadBtn.trigger('click')
+      await flushPromises()
+
+      expect(mockBackupApi.download).toHaveBeenCalled()
+    })
+
+    it('shows error when backupApi.download fails', async () => {
+      seedUser()
+      mockBackupApi.download.mockRejectedValue(new Error('Network failure'))
+      const { wrapper } = mountProfile()
+
+      const downloadBtn = wrapper.find('button.btn-secondary')
+      await downloadBtn.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Failed to download backup')
+    })
+
+    // Helper: create a fake file-like object whose .text() returns a resolved promise.
+    // We use a plain object because JSDOM's File does not implement Blob.text().
+    function fakeFileWith(content: string) {
+      return { text: vi.fn().mockResolvedValue(content), name: 'backup.json', value: '' }
+    }
+
+    it('restores from file and shows success message', async () => {
+      seedUser()
+      const restoreResult = { lists: 2, items: 5 }
+      mockBackupApi.restore.mockResolvedValue(restoreResult)
+      const { wrapper } = mountProfile()
+
+      const fakeData = { version: 1, lists: [] }
+      const fakeFile = fakeFileWith(JSON.stringify(fakeData))
+      const event = { target: { files: [fakeFile], value: '' } }
+      await (
+        wrapper.vm as unknown as { handleRestoreFile: (e: Event) => Promise<void> }
+      ).handleRestoreFile(event as unknown as Event)
+      await flushPromises()
+
+      expect(mockBackupApi.restore).toHaveBeenCalledWith(fakeData)
+      expect(wrapper.text()).toContain('Restored 2 list(s) and 5 item(s)')
+    })
+
+    it('shows error when restore fails with server message', async () => {
+      seedUser()
+      const err = { response: { data: { message: 'Invalid backup format' } } }
+      mockBackupApi.restore.mockRejectedValue(err)
+      const { wrapper } = mountProfile()
+
+      const fakeData = { version: 1, lists: [] }
+      const fakeFile = fakeFileWith(JSON.stringify(fakeData))
+      const event = { target: { files: [fakeFile], value: '' } }
+      await (
+        wrapper.vm as unknown as { handleRestoreFile: (e: Event) => Promise<void> }
+      ).handleRestoreFile(event as unknown as Event)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Invalid backup format')
+    })
+
+    it('shows generic error when restore fails without server message', async () => {
+      seedUser()
+      mockBackupApi.restore.mockRejectedValue(new Error('Unknown error'))
+      const { wrapper } = mountProfile()
+
+      const fakeFile = fakeFileWith('{}')
+      const event = { target: { files: [fakeFile], value: '' } }
+      await (
+        wrapper.vm as unknown as { handleRestoreFile: (e: Event) => Promise<void> }
+      ).handleRestoreFile(event as unknown as Event)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Failed to restore backup')
+    })
+
+    it('does nothing when no file is selected (handleRestoreFile early return)', async () => {
+      seedUser()
+      const { wrapper } = mountProfile()
+
+      const event = { target: { files: [], value: '' } }
+      await (
+        wrapper.vm as unknown as { handleRestoreFile: (e: Event) => Promise<void> }
+      ).handleRestoreFile(event as unknown as Event)
+      await flushPromises()
+
+      expect(mockBackupApi.restore).not.toHaveBeenCalled()
     })
   })
 })

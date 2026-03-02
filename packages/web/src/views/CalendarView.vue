@@ -66,58 +66,61 @@
     </div>
 
     <!-- Calendar grid -->
-    <div class="cal-grid">
-      <div v-for="day in weekDayLabels" :key="day" class="cal-day-label">{{ day }}</div>
-      <div
-        v-for="cell in calendarCells"
-        :key="cell.key"
-        class="cal-cell"
-        :class="{
-          'cal-cell-other': !cell.inMonth,
-          'cal-cell-today': cell.isToday,
-        }"
-      >
-        <div class="cal-cell-top">
-          <span class="cal-date-num">{{ cell.day }}</span>
-          <button
-            class="cal-add-day-btn"
-            title="Add item on this day"
-            @click.stop="openAddModal(cell.date)"
-          >
-            +
-          </button>
-        </div>
-        <div class="cal-items">
-          <!-- Upcoming items -->
-          <div
-            v-for="item in cell.items"
-            :key="item.id"
-            class="cal-item"
-            :class="`cal-item-${computeUrgencyLevel(item.dueDate)}`"
-            @click="$router.push(`/lists/${item.listId}?from=calendar`)"
-            @mouseenter="showItemHover($event, item)"
-            @mouseleave="scheduleHide"
-          >
-            {{ item.title }}
+    <div class="cal-scroll">
+      <div class="cal-grid">
+        <div v-for="day in weekDayLabels" :key="day" class="cal-day-label">{{ day }}</div>
+        <div
+          v-for="cell in calendarCells"
+          :key="cell.key"
+          class="cal-cell"
+          :class="{
+            'cal-cell-other': !cell.inMonth,
+            'cal-cell-today': cell.isToday,
+          }"
+        >
+          <div class="cal-cell-top">
+            <span class="cal-date-num">{{ cell.day }}</span>
+            <button
+              class="cal-add-day-btn"
+              title="Add item on this day"
+              @click.stop="openAddModal(cell.date)"
+            >
+              +
+            </button>
           </div>
+          <div class="cal-items">
+            <!-- Upcoming items -->
+            <div
+              v-for="item in cell.items"
+              :key="item.id"
+              class="cal-item"
+              :class="`cal-item-${computeUrgencyLevel(item.dueDate)}`"
+              @click="$router.push(`/lists/${item.listId}?from=calendar`)"
+              @mouseenter="showItemHover($event, item)"
+              @mouseleave="scheduleHide"
+            >
+              {{ item.title }}
+            </div>
 
-          <!-- Completed items -->
-          <div
-            v-for="c in cell.completions"
-            :key="c.id"
-            class="cal-item cal-item-done"
-            @click="openUndoModal(c)"
-            @mouseenter="showCompletionHover($event, c)"
-            @mouseleave="scheduleHide"
-          >
-            ✓ {{ c.itemTitle }}
+            <!-- Completed items -->
+            <div
+              v-for="c in cell.completions"
+              :key="c.id"
+              class="cal-item cal-item-done"
+              @click="openUndoModal(c)"
+              @mouseenter="showCompletionHover($event, c)"
+              @mouseleave="scheduleHide"
+            >
+              ✓ {{ c.itemTitle }}
+            </div>
           </div>
         </div>
       </div>
     </div>
+    <!-- end cal-scroll -->
 
     <!-- Unscheduled items -->
-    <div v-if="unscheduledLists.length > 0" class="unscheduled-section">
+    <div v-if="unscheduledLists.length > 0" id="unscheduled" class="unscheduled-section">
       <h3 class="unscheduled-heading">Unscheduled Items</h3>
       <div v-for="group in unscheduledLists" :key="group.listId" class="unscheduled-group">
         <div class="unscheduled-list-title">{{ group.listTitle }}</div>
@@ -125,7 +128,7 @@
           v-for="item in group.items"
           :key="item.id"
           class="unscheduled-item"
-          @click="$router.push(`/lists/${item.listId}?from=calendar`)"
+          @click="$router.push(`/lists/${item.listId}?from=calendar&editItem=${item.id}`)"
         >
           {{ item.title
           }}<span v-if="item.description" class="unscheduled-item-desc">
@@ -195,7 +198,7 @@
     <!-- Add Item Modal -->
     <Teleport to="body">
       <div v-if="showAddModal" class="modal-overlay">
-        <div class="modal card modal-wide">
+        <div class="modal card modal-wide" role="dialog" aria-modal="true" aria-label="New Item">
           <h2>New Item</h2>
           <form @submit.prevent="handleAddItem">
             <div class="form-group">
@@ -341,7 +344,7 @@
     <!-- Undo confirmation modal -->
     <Teleport to="body">
       <div v-if="undoTarget" class="modal-overlay">
-        <div class="modal card">
+        <div class="modal card" role="dialog" aria-modal="true" aria-label="Undo completion">
           <h2>Undo completion?</h2>
           <p>
             Undo the completion of <strong>{{ undoTarget.itemTitle }}</strong>
@@ -367,7 +370,12 @@
     <!-- iCal / Google Calendar dialog -->
     <Teleport to="body">
       <div v-if="showIcalDialog" class="modal-overlay">
-        <div class="modal card ical-dialog">
+        <div
+          class="modal card ical-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Calendar Subscription"
+        >
           <h2>📅 Calendar Subscription</h2>
           <p class="modal-hint">
             Subscribe to your tasks so they appear in Google Calendar, Apple Calendar, or any app
@@ -1124,6 +1132,11 @@
   }
 
   /* ── Calendar grid ────────────────────────────────────────── */
+  .cal-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -1132,6 +1145,7 @@
     border: 1px solid var(--color-border);
     border-radius: 8px;
     overflow: hidden;
+    min-width: 490px; /* ≥ 70px per column — reliably tappable */
   }
   .cal-day-label {
     background: var(--color-surface-sunken);
@@ -1558,7 +1572,6 @@
       margin-left: 0;
     }
     .cal-cell {
-      min-height: 60px;
       padding: 0.2rem;
     }
     .cal-item {

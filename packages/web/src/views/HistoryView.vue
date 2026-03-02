@@ -35,7 +35,7 @@
     <!-- Undo confirmation modal -->
     <Teleport to="body">
       <div v-if="undoTarget" class="modal-overlay">
-        <div class="modal card">
+        <div class="modal card" role="dialog" aria-modal="true" aria-label="Undo completion">
           <h2>Undo completion?</h2>
           <p>
             Remove the completion recorded on

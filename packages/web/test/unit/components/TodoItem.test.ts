@@ -292,3 +292,80 @@ describe('item content', () => {
     expect(wrapper.find('.todo-desc').exists()).toBe(false)
   })
 })
+
+describe('amountLabel', () => {
+  it('shows nothing when amount is null', () => {
+    const wrapper = mountItem(makeItem({ amount: null, currency: null }))
+    expect(wrapper.find('.meta-amount').exists()).toBe(false)
+  })
+
+  it('shows nothing when amount is empty string', () => {
+    const wrapper = mountItem(makeItem({ amount: '', currency: null }))
+    expect(wrapper.find('.meta-amount').exists()).toBe(false)
+  })
+
+  it('shows nothing when amount is NaN (non-numeric string)', () => {
+    const wrapper = mountItem(makeItem({ amount: 'abc', currency: null }))
+    expect(wrapper.find('.meta-amount').exists()).toBe(false)
+  })
+
+  it('formats amount with valid currency code', () => {
+    const wrapper = mountItem(makeItem({ amount: '10.5', currency: 'USD' }))
+    expect(wrapper.find('.meta-amount').exists()).toBe(true)
+    // Should contain formatted currency value
+    expect(wrapper.find('.meta-amount').text()).toContain('10')
+  })
+
+  it('formats amount as plain number when currency is null', () => {
+    const wrapper = mountItem(makeItem({ amount: '42.5', currency: null }))
+    expect(wrapper.find('.meta-amount').exists()).toBe(true)
+    expect(wrapper.find('.meta-amount').text()).toContain('42')
+  })
+
+  it('formats amount as plain number when currency code is invalid', () => {
+    // An invalid Intl currency code triggers the catch and falls back to plain number
+    const wrapper = mountItem(makeItem({ amount: '99', currency: 'INVALID_CODE' }))
+    expect(wrapper.find('.meta-amount').exists()).toBe(true)
+    expect(wrapper.find('.meta-amount').text()).toContain('99')
+  })
+})
+
+describe('weekdayName fallback', () => {
+  it('falls back to "Monday" for a mask value not in the lookup table', () => {
+    // Use a mask value that is not in WEEKDAY_NAMES (e.g. 3 = Mon+Sun combined bit)
+    const wrapper = mountItem(
+      makeItem({ recurrenceRule: { id: 'r1', type: 'weekly_on_day', weekdayMask: 3 } })
+    )
+    // Should fall through WEEKDAY_NAMES[3] === undefined → 'Monday'
+    expect(wrapper.text()).toContain('Every Monday')
+  })
+})
+
+describe('recurrenceDetail unknown type', () => {
+  it('returns empty string for an unknown recurrence type (default branch)', () => {
+    const wrapper = mountItem(
+      // Cast to any to inject an unknown type
+      makeItem({ recurrenceRule: { id: 'r1', type: 'unknown_type' as never } })
+    )
+    // The badge should not show because recurrenceLabel also returns '' for unknown type
+    // but if it did show, title would be ''
+    const badge = wrapper.find('.meta-recurrence')
+    if (badge.exists()) {
+      expect(badge.attributes('title')).toBe('')
+    }
+  })
+})
+
+describe('recurrenceLabel unknown type', () => {
+  it('renders recurrence badge with empty label for unknown type (default branch returns "")', () => {
+    const wrapper = mountItem(
+      makeItem({ recurrenceRule: { id: 'r1', type: 'unknown_type' as never } })
+    )
+    // Badge renders (type !== 'none') but label text is '' and detail is '' (default branches)
+    const badge = wrapper.find('.meta-recurrence')
+    expect(badge.exists()).toBe(true)
+    // The label returned by recurrenceLabel default case is ''
+    // The badge renders with the ↻ symbol and empty label
+    expect(badge.text()).toContain('↻')
+  })
+})

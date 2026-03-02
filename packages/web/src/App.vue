@@ -5,15 +5,20 @@
         <span class="nav-brand">📋 Todo Tracker</span>
 
         <div class="nav-links">
-          <router-link to="/">Lists</router-link>
-          <router-link to="/calendar">Calendar</router-link>
-          <router-link to="/audit">Log</router-link>
+          <router-link to="/">📋 Lists</router-link>
+          <router-link to="/calendar">📅 Calendar</router-link>
+          <router-link to="/audit">📜 Log</router-link>
         </div>
 
         <div class="nav-user">
-          <router-link to="/profile" class="nav-username hide-mobile">{{
-            auth.user?.username
-          }}</router-link>
+          <router-link
+            to="/profile"
+            class="nav-username"
+            :title="auth.user?.firstName || auth.user?.username"
+          >
+            <span class="hide-mobile">{{ auth.user?.firstName || auth.user?.username }}</span>
+            <span class="show-mobile" aria-hidden="true">👤</span>
+          </router-link>
 
           <!-- Dark mode toggle -->
           <button

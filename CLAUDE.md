@@ -76,12 +76,14 @@ packages/
       comments/index.ts           # DELETE /api/comments/:commentId
       calendar/index.ts           # GET /api/calendar/range, /api/calendar/ical
       audit/index.ts              # GET /api/audit (paginated, user-scoped)
+      backup/index.ts             # GET /api/backup (JSON download), POST /api/backup/restore
     services/
       auth.service.ts             # register, login, updateProfile, changePassword
       lists.service.ts
       items.service.ts            # duplicate, move (listId in update)
       comments.service.ts         # findByItemId, create, delete
       audit.service.ts            # log(), findByUser() — called fire-and-forget in routes
+      backup.service.ts           # export(userId) → BackupData; import(userId, data) → counts
       calendar.service.ts
       recurrence.service.ts       # pure domain logic — no I/O, fully unit-tested
     utils/
@@ -100,6 +102,7 @@ packages/
       lists.api.ts
       items.api.ts
       calendar.api.ts
+      backup.api.ts               # download() triggers browser save; restore(data) POSTs JSON
     stores/
       auth.store.ts
       lists.store.ts
@@ -114,7 +117,7 @@ packages/
       ListDetailView.vue          # items within a list, comments, move-to-list
       CalendarView.vue            # monthly grid; modals use <Teleport to="body">
       HistoryView.vue             # completion log for one item, undo support
-      ProfileView.vue             # personal details form + change-password section
+      ProfileView.vue             # personal details, change-password, backup/restore sections
       AuditLogView.vue            # change log table, load-more pagination
       LoginView.vue
       RegisterView.vue
@@ -225,6 +228,14 @@ await flushPromises()
 
 ```ts
 summary: 'summary' in overrides ? overrides.summary : 'default value'
+```
+
+**JSDOM `File.text()` not supported** — when testing file-upload handlers, create a plain object with a `text` mock instead of a real `File`:
+
+```ts
+const fakeFile = { text: vi.fn().mockResolvedValue(JSON.stringify(data)), name: 'backup.json' }
+const event = { target: { files: [fakeFile], value: '' } }
+await (wrapper.vm as any).handleRestoreFile(event as Event)
 ```
 
 **Coverage thresholds:** statements 90%, lines 90%, functions 85%, branches 80% (both packages).

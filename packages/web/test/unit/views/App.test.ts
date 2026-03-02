@@ -71,7 +71,7 @@ describe('App.vue', () => {
     expect(mockAuthApi.me).toHaveBeenCalled()
   })
 
-  it('shows username in nav when authenticated', async () => {
+  it('shows username in nav when authenticated (no firstName)', async () => {
     const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
     mockAuthApi.me.mockResolvedValue(fakeUser)
     localStorage.setItem('auth_token', 'valid-token')
@@ -80,6 +80,37 @@ describe('App.vue', () => {
     const { wrapper } = mountApp()
     await flushPromises()
     expect(wrapper.text()).toContain('alice')
+  })
+
+  it('shows first name instead of username when firstName is set', async () => {
+    const fakeUser = {
+      id: 'u1',
+      email: 'a@b.com',
+      username: 'alice',
+      firstName: 'Alice',
+      createdAt: '2024-01-01',
+    }
+    mockAuthApi.me.mockResolvedValue(fakeUser)
+    localStorage.setItem('auth_token', 'valid-token')
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const { wrapper } = mountApp()
+    await flushPromises()
+    expect(wrapper.find('.nav-username').text()).toContain('Alice')
+  })
+
+  it('nav links include icons for Lists, Calendar, and Log', async () => {
+    const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
+    mockAuthApi.me.mockResolvedValue(fakeUser)
+    localStorage.setItem('auth_token', 'valid-token')
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const { wrapper } = mountApp()
+    await flushPromises()
+    const navText = wrapper.find('.nav-links').text()
+    expect(navText).toContain('Lists')
+    expect(navText).toContain('Calendar')
+    expect(navText).toContain('Log')
   })
 
   it('logout button calls logout', async () => {

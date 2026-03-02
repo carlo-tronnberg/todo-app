@@ -49,7 +49,7 @@
 
     <!-- ── Create Modal ───────────────────────────────────────────── -->
     <div v-if="showCreateModal" class="modal-backdrop">
-      <div class="modal card">
+      <div class="modal card" role="dialog" aria-modal="true" aria-label="New List">
         <h2>New List</h2>
         <form @submit.prevent="handleCreateList">
           <div class="form-group">
@@ -90,7 +90,7 @@
 
     <!-- ── Edit Modal ─────────────────────────────────────────────── -->
     <div v-if="showEditModal" class="modal-backdrop">
-      <div class="modal card">
+      <div class="modal card" role="dialog" aria-modal="true" aria-label="Edit List">
         <h2>Edit List</h2>
         <form @submit.prevent="handleUpdateList">
           <div class="form-group">
@@ -131,7 +131,12 @@
 
     <!-- ── Delete Confirmation Modal ─────────────────────────────── -->
     <div v-if="showDeleteModal && deletingList" class="modal-backdrop">
-      <div class="modal modal--narrow card">
+      <div
+        class="modal modal--narrow card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Delete List"
+      >
         <div class="delete-icon">🗑</div>
         <h2>Delete "{{ deletingList.title }}"?</h2>
         <p class="delete-warning">

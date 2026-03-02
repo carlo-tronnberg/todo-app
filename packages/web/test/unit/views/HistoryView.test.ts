@@ -201,6 +201,68 @@ describe('HistoryView', () => {
     wrapper.unmount()
   })
 
+  it('creates new item from completion when "New item from this" is clicked', async () => {
+    const fakeItem = {
+      id: 'i1',
+      listId: 'l1',
+      title: 'Buy Milk',
+      description: 'Organic',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
+    }
+    mockItemsApi.getCompletions.mockResolvedValue([fakeCompletion])
+    mockItemsApi.getOne.mockResolvedValue(fakeItem)
+    const router = await makeRouter('i1', 'l1')
+    const pushSpy = vi.spyOn(router, 'push')
+    const wrapper = mount(HistoryView, { global: { plugins: [pinia, router] } })
+    await flushPromises()
+
+    // The "New item from this" button is present when listId is provided
+    const newItemBtn = wrapper.find('button.btn-sm[title]')
+    await newItemBtn.trigger('click')
+    await flushPromises()
+
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/lists/l1',
+        query: expect.objectContaining({ prefillTitle: 'Buy Milk', prefillDesc: 'Organic' }),
+      })
+    )
+  })
+
+  it('creates new item from completion without description', async () => {
+    const fakeItemNoDesc = {
+      id: 'i1',
+      listId: 'l1',
+      title: 'Simple Task',
+      description: null,
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
+    }
+    mockItemsApi.getCompletions.mockResolvedValue([fakeCompletion])
+    mockItemsApi.getOne.mockResolvedValue(fakeItemNoDesc)
+    const router = await makeRouter('i1', 'l1')
+    const pushSpy = vi.spyOn(router, 'push')
+    const wrapper = mount(HistoryView, { global: { plugins: [pinia, router] } })
+    await flushPromises()
+
+    const newItemBtn = wrapper.find('button.btn-sm[title]')
+    await newItemBtn.trigger('click')
+    await flushPromises()
+
+    // No prefillDesc key when description is null
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/lists/l1',
+        query: { prefillTitle: 'Simple Task' },
+      })
+    )
+  })
+
   it('opens undo modal for completion without dueDateSnapshot', async () => {
     const completionNoDate = {
       id: 'c3',

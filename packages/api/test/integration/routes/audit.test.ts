@@ -62,6 +62,16 @@ describe('Audit Routes', () => {
       expect(Array.isArray(res.json())).toBe(true)
     })
 
+    it('falls back to default limit when limit is non-numeric', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/audit?limit=notanumber&offset=notanumber',
+        headers: auth(),
+      })
+      expect(res.statusCode).toBe(200)
+      expect(Array.isArray(res.json())).toBe(true)
+    })
+
     it('does not return other users audit entries', async () => {
       const uid2 = Date.now() + 1
       const otherRes = await app.inject({

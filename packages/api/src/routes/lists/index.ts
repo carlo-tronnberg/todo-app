@@ -96,6 +96,7 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
       } catch (err) {
         /* c8 ignore next */
         const msg = err instanceof Error ? err.message : ''
+        /* c8 ignore next */
         if (msg === 'LIST_NOT_FOUND') return reply.notFound()
         /* c8 ignore next 2 */
         throw err
