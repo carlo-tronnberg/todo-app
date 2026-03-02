@@ -6,7 +6,7 @@
         <h1 v-if="list">{{ list.title }}</h1>
         <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
       </div>
-      <button class="btn btn-primary" @click="showAddModal = true">+ Add Item</button>
+      <button class="btn btn-primary" @click="openAddModal">+ Add Item</button>
     </div>
 
     <div v-if="itemsStore.loading" class="loading">Loading…</div>
@@ -201,6 +201,17 @@
             </select>
           </div>
 
+          <!-- Weekly multiple days: checkbox row -->
+          <div v-if="form.recurrenceType === 'weekly'" class="form-group">
+            <label class="form-label">Days of week</label>
+            <div class="weekday-checkboxes">
+              <label v-for="day in WEEKDAYS" :key="day.bit" class="weekday-check">
+                <input v-model="form.weeklyDayBits" type="checkbox" :value="day.bit" />
+                {{ day.label }}
+              </label>
+            </div>
+          </div>
+
           <div v-if="form.recurrenceType === 'monthly_on_day'" class="form-group">
             <label class="form-label">Day of month (1–31)</label>
             <input
@@ -251,6 +262,80 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, watch } from 'vue'
+
+  const WEEKDAYS = [
+    { bit: 1, label: 'Sun' },
+    { bit: 2, label: 'Mon' },
+    { bit: 4, label: 'Tue' },
+    { bit: 8, label: 'Wed' },
+    { bit: 16, label: 'Thu' },
+    { bit: 32, label: 'Fri' },
+    { bit: 64, label: 'Sat' },
+  ]
+
+  function computeFirstOccurrence(
+    type: string,
+    weekdayMask: number,
+    weeklyDayBits: number[],
+    dayOfMonth: number,
+    intervalDays: number
+  ): string {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    if (type === 'daily') {
+      const d = new Date(today)
+      d.setDate(d.getDate() + 1)
+      return d.toISOString().substring(0, 10)
+    }
+
+    if (type === 'weekly_on_day') {
+      const targetDow = Math.round(Math.log2(weekdayMask)) // 0=Sun … 6=Sat
+      const d = new Date(today)
+      let diff = targetDow - today.getDay()
+      if (diff <= 0) diff += 7
+      d.setDate(d.getDate() + diff)
+      return d.toISOString().substring(0, 10)
+    }
+
+    if (type === 'weekly') {
+      if (!weeklyDayBits.length) return ''
+      const todayDow = today.getDay()
+      let minDiff = 7
+      for (const b of weeklyDayBits) {
+        let diff = Math.round(Math.log2(b)) - todayDow
+        if (diff <= 0) diff += 7
+        if (diff < minDiff) minDiff = diff
+      }
+      const d = new Date(today)
+      d.setDate(d.getDate() + minDiff)
+      return d.toISOString().substring(0, 10)
+    }
+
+    if (type === 'monthly_on_day') {
+      const day = Math.max(1, Math.min(31, dayOfMonth))
+      const d = new Date(today.getFullYear(), today.getMonth(), day)
+      if (d <= today) {
+        d.setMonth(d.getMonth() + 1)
+        d.setDate(day)
+      }
+      return d.toISOString().substring(0, 10)
+    }
+
+    if (type === 'custom_days') {
+      const d = new Date(today)
+      d.setDate(d.getDate() + Math.max(1, intervalDays))
+      return d.toISOString().substring(0, 10)
+    }
+
+    if (type === 'yearly') {
+      const d = new Date(today)
+      d.setFullYear(d.getFullYear() + 1)
+      return d.toISOString().substring(0, 10)
+    }
+
+    return ''
+  }
   import { useRoute } from 'vue-router'
   import { format, parseISO } from 'date-fns'
   import { listsApi } from '../api/lists.api'
@@ -325,27 +410,37 @@
     endTime: '',
     dueDate: '',
     amount: '',
-    currency: '',
+    currency: list.value?.defaultCurrency ?? '',
     recurrenceType: 'none' as string,
     dayOfMonth: 1,
     intervalDays: 30,
     weekdayMask: 2, // Monday by default
+    weeklyDayBits: [] as number[],
     targetListId: listId,
   })
 
   const form = ref(BLANK_FORM())
 
-  // When switching recurrence type, default derived fields from the selected due date
+  // When switching recurrence type: derive helper fields from an existing due date,
+  // or auto-fill the due date when none is set yet.
   watch(
     () => form.value.recurrenceType,
     (type) => {
-      if (!form.value.dueDate) return
-      const d = new Date(form.value.dueDate)
-      if (isNaN(d.getTime())) return
-      if (type === 'monthly_on_day') {
-        form.value.dayOfMonth = d.getDate()
-      } else if (type === 'weekly_on_day') {
-        form.value.weekdayMask = 1 << d.getDay()
+      if (form.value.dueDate) {
+        const d = new Date(form.value.dueDate)
+        if (!isNaN(d.getTime())) {
+          if (type === 'monthly_on_day') form.value.dayOfMonth = d.getDate()
+          else if (type === 'weekly_on_day') form.value.weekdayMask = 1 << d.getDay()
+        }
+      } else if (type !== 'none') {
+        const first = computeFirstOccurrence(
+          type,
+          form.value.weekdayMask,
+          form.value.weeklyDayBits,
+          form.value.dayOfMonth,
+          form.value.intervalDays
+        )
+        if (first) form.value.dueDate = first
       }
     }
   )
@@ -373,6 +468,11 @@
     }
   })
 
+  function openAddModal() {
+    form.value = BLANK_FORM()
+    showAddModal.value = true
+  }
+
   function closeModal() {
     showAddModal.value = false
     editingItem.value = null
@@ -394,6 +494,9 @@
       dayOfMonth: item.recurrenceRule?.dayOfMonth ?? 1,
       intervalDays: item.recurrenceRule?.intervalDays ?? 30,
       weekdayMask: item.recurrenceRule?.weekdayMask ?? 2, // default Monday
+      weeklyDayBits: WEEKDAYS.filter((d) => (item.recurrenceRule?.weekdayMask ?? 0) & d.bit).map(
+        (d) => d.bit
+      ),
       targetListId: item.listId,
     }
   }
@@ -458,9 +561,11 @@
           intervalDays:
             form.value.recurrenceType === 'custom_days' ? form.value.intervalDays : undefined,
           weekdayMask:
-            form.value.recurrenceType === 'weekly_on_day' || form.value.recurrenceType === 'weekly'
+            form.value.recurrenceType === 'weekly_on_day'
               ? form.value.weekdayMask
-              : undefined,
+              : form.value.recurrenceType === 'weekly'
+                ? form.value.weeklyDayBits.reduce((acc, b) => acc | b, 0)
+                : undefined,
         }
       } else {
         // Explicitly clear recurrence when "No recurrence" is chosen
@@ -588,6 +693,25 @@
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+  }
+
+  /* Weekday checkboxes */
+  .weekday-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+    margin-top: 0.25rem;
+  }
+  .weekday-check {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .weekday-check input[type='checkbox'] {
+    cursor: pointer;
   }
 
   /* Comments */
