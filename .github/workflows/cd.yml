@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # needed for ghcr.io
+      packages: write # needed for ghcr.io
 
     env:
       REGISTRY: ghcr.io
