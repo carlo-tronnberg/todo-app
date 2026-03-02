@@ -280,7 +280,12 @@ export class ItemsService {
     return this.create(existing.listId, userId, {
       title: `Copy of ${existing.title}`,
       description: existing.description ?? undefined,
+      startDate: existing.startDate?.toISOString(),
       dueDate: existing.dueDate?.toISOString(),
+      startTime: existing.startTime ?? undefined,
+      endTime: existing.endTime ?? undefined,
+      amount: existing.amount != null ? String(existing.amount) : undefined,
+      currency: existing.currency ?? undefined,
       colorOverride: existing.colorOverride ?? undefined,
       sortOrder: existing.sortOrder,
       recurrenceRule,

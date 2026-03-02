@@ -70,6 +70,7 @@ beforeEach(() => {
     google: 'https://www.google.com/calendar/render?cid=webcal%3A%2F%2Fexample.com',
   })
   mockListsApi.getAll.mockResolvedValue([fakeList])
+  mockListsApi.getItems.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -308,11 +309,13 @@ describe('CalendarView', () => {
     const addDayBtn = wrapper.find('.cal-add-day-btn')
     await addDayBtn.trigger('click')
     await flushPromises()
-    // Modal should open with some date pre-filled
-    const dateInput = document.body.querySelector('input[type="date"]') as HTMLInputElement
-    expect(dateInput).not.toBeNull()
+    // Modal should open with dueDate pre-filled (it's inside .input-clear-row)
+    const dueDateInput = document.body.querySelector(
+      '.input-clear-row input[type="date"]'
+    ) as HTMLInputElement
+    expect(dueDateInput).not.toBeNull()
     // The dueDate should be set (non-empty)
-    expect(dateInput.value).toBeTruthy()
+    expect(dueDateInput.value).toBeTruthy()
   })
 
   it('auto-sets dayOfMonth when switching recurrence to monthly_on_day', async () => {
@@ -321,16 +324,20 @@ describe('CalendarView', () => {
     await wrapper.find('button.add-btn').trigger('click')
     await flushPromises()
 
-    // Set a due date first
-    const dateInput = document.body.querySelector('input[type="date"]') as HTMLInputElement
-    dateInput.value = '2024-06-15'
-    dateInput.dispatchEvent(new Event('input', { bubbles: true }))
+    // Set a due date first (dueDate input is inside .input-clear-row)
+    const dueDateInput = document.body.querySelector(
+      '.input-clear-row input[type="date"]'
+    ) as HTMLInputElement
+    dueDateInput.value = '2024-06-15'
+    dueDateInput.dispatchEvent(new Event('input', { bubbles: true }))
     await flushPromises()
 
     // Change recurrence type to monthly_on_day
     const selects = document.body.querySelectorAll('select')
-    // The recurrence select is the second select (after list select)
-    const recurrenceSelect = selects[1] as HTMLSelectElement
+    // The recurrence select is the third select (list, currency, recurrence)
+    const recurrenceSelect = Array.from(selects).find((s) =>
+      s.querySelector('option[value="monthly_on_day"]')
+    ) as HTMLSelectElement
     recurrenceSelect.value = 'monthly_on_day'
     recurrenceSelect.dispatchEvent(new Event('change', { bubbles: true }))
     await flushPromises()

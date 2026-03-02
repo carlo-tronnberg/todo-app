@@ -191,13 +191,13 @@
           <div v-if="form.recurrenceType === 'weekly_on_day'" class="form-group">
             <label class="form-label">Weekday</label>
             <select v-model.number="form.weekdayMask" class="form-input">
-              <option :value="1">Sunday</option>
               <option :value="2">Monday</option>
               <option :value="4">Tuesday</option>
               <option :value="8">Wednesday</option>
               <option :value="16">Thursday</option>
               <option :value="32">Friday</option>
               <option :value="64">Saturday</option>
+              <option :value="1">Sunday</option>
             </select>
           </div>
 
@@ -264,13 +264,13 @@
   import { ref, computed, onMounted, watch } from 'vue'
 
   const WEEKDAYS = [
-    { bit: 1, label: 'Sun' },
     { bit: 2, label: 'Mon' },
     { bit: 4, label: 'Tue' },
     { bit: 8, label: 'Wed' },
     { bit: 16, label: 'Thu' },
     { bit: 32, label: 'Fri' },
     { bit: 64, label: 'Sat' },
+    { bit: 1, label: 'Sun' },
   ]
 
   function computeFirstOccurrence(

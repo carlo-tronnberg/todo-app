@@ -33,6 +33,11 @@
         >
           ↻ {{ recurrenceLabel }}
         </span>
+
+        <!-- Amount badge -->
+        <span v-if="amountLabel" class="meta-pill meta-amount">
+          {{ amountLabel }}
+        </span>
       </div>
     </div>
 
@@ -109,6 +114,26 @@
     if (days === 1) return `Due tomorrow · ${formatted}`
     if (days <= 7) return `Due in ${days}d · ${formatted}`
     return `Due ${formatted}`
+  })
+
+  // ── Amount ─────────────────────────────────────────────────────────────────
+  const amountLabel = computed(() => {
+    const raw = props.item.amount
+    if (raw == null || raw === '') return ''
+    const num = parseFloat(raw)
+    if (isNaN(num)) return ''
+    const cur = props.item.currency
+    if (cur) {
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(num)
+      } catch {
+        // Invalid currency code — fall through to plain number
+      }
+    }
+    return new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num)
   })
 
   // ── Recurrence ─────────────────────────────────────────────────────────────
@@ -275,6 +300,13 @@
   .meta-low {
     background: var(--urgency-low-bg);
     color: var(--urgency-low-text);
+  }
+
+  /* Amount badge */
+  .meta-amount {
+    background: var(--pill-default-bg);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
   }
 
   /* Recurrence badge */

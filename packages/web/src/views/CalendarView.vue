@@ -116,6 +116,25 @@
       </div>
     </div>
 
+    <!-- Unscheduled items -->
+    <div v-if="unscheduledLists.length > 0" class="unscheduled-section">
+      <h3 class="unscheduled-heading">Unscheduled Items</h3>
+      <div v-for="group in unscheduledLists" :key="group.listId" class="unscheduled-group">
+        <div class="unscheduled-list-title">{{ group.listTitle }}</div>
+        <div
+          v-for="item in group.items"
+          :key="item.id"
+          class="unscheduled-item"
+          @click="$router.push(`/lists/${item.listId}?from=calendar`)"
+        >
+          {{ item.title
+          }}<span v-if="item.description" class="unscheduled-item-desc">
+            — {{ item.description }}</span
+          >
+        </div>
+      </div>
+    </div>
+
     <!-- Hover detail popup -->
     <Teleport to="body">
       <div
@@ -196,9 +215,61 @@
               <label class="form-label">Description</label>
               <textarea v-model="addForm.description" class="form-input" rows="2" />
             </div>
-            <div class="form-group">
-              <label class="form-label">Due Date</label>
-              <input v-model="addForm.dueDate" type="date" class="form-input" />
+            <!-- Start date + time row -->
+            <div class="form-row">
+              <div class="form-col">
+                <label class="form-label">Start Date</label>
+                <input v-model="addForm.startDate" type="date" class="form-input" />
+              </div>
+              <div class="form-col">
+                <label class="form-label">Start Time</label>
+                <input v-model="addForm.startTime" type="time" class="form-input" />
+              </div>
+            </div>
+            <!-- Due date + end time row -->
+            <div class="form-row">
+              <div class="form-col">
+                <label class="form-label">Due Date</label>
+                <div class="input-clear-row">
+                  <input v-model="addForm.dueDate" type="date" class="form-input" />
+                  <button
+                    v-if="addForm.dueDate"
+                    type="button"
+                    class="btn-clear"
+                    @click="addForm.dueDate = ''"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div class="form-col">
+                <label class="form-label">End Time</label>
+                <input v-model="addForm.endTime" type="time" class="form-input" />
+              </div>
+            </div>
+            <!-- Amount + currency row -->
+            <div class="form-row">
+              <div class="form-col">
+                <label class="form-label">Amount</label>
+                <input
+                  v-model="addForm.amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input"
+                />
+              </div>
+              <div class="form-col">
+                <label class="form-label">Currency</label>
+                <select v-model="addForm.currency" class="form-input">
+                  <option value="">— None —</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="SEK">SEK</option>
+                  <option value="DKK">DKK</option>
+                  <option value="HUF">HUF</option>
+                </select>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Recurrence</label>
@@ -216,14 +287,24 @@
             <div v-if="addForm.recurrenceType === 'weekly_on_day'" class="form-group">
               <label class="form-label">Weekday</label>
               <select v-model.number="addForm.weekdayMask" class="form-input">
-                <option :value="1">Sunday</option>
                 <option :value="2">Monday</option>
                 <option :value="4">Tuesday</option>
                 <option :value="8">Wednesday</option>
                 <option :value="16">Thursday</option>
                 <option :value="32">Friday</option>
                 <option :value="64">Saturday</option>
+                <option :value="1">Sunday</option>
               </select>
+            </div>
+            <!-- weekly (multi-day): checkboxes -->
+            <div v-if="addForm.recurrenceType === 'weekly'" class="form-group">
+              <label class="form-label">Days of week</label>
+              <div class="weekday-checkboxes">
+                <label v-for="day in WEEKDAYS" :key="day.bit" class="weekday-check">
+                  <input v-model="addForm.weeklyDayBits" type="checkbox" :value="day.bit" />
+                  {{ day.label }}
+                </label>
+              </div>
             </div>
             <div v-if="addForm.recurrenceType === 'monthly_on_day'" class="form-group">
               <label class="form-label">Day of month (1–31)</label>
@@ -332,6 +413,74 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+
+  const WEEKDAYS = [
+    { bit: 2, label: 'Mon' },
+    { bit: 4, label: 'Tue' },
+    { bit: 8, label: 'Wed' },
+    { bit: 16, label: 'Thu' },
+    { bit: 32, label: 'Fri' },
+    { bit: 64, label: 'Sat' },
+    { bit: 1, label: 'Sun' },
+  ]
+
+  function computeFirstOccurrence(
+    type: string,
+    weekdayMask: number,
+    weeklyDayBits: number[],
+    dayOfMonth: number,
+    intervalDays: number
+  ): string {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (type === 'daily') {
+      const d = new Date(today)
+      d.setDate(d.getDate() + 1)
+      return d.toISOString().substring(0, 10)
+    }
+    if (type === 'weekly_on_day') {
+      const targetDow = Math.round(Math.log2(weekdayMask))
+      const d = new Date(today)
+      let diff = targetDow - today.getDay()
+      if (diff <= 0) diff += 7
+      d.setDate(d.getDate() + diff)
+      return d.toISOString().substring(0, 10)
+    }
+    if (type === 'weekly') {
+      if (!weeklyDayBits.length) return ''
+      const todayDow = today.getDay()
+      let minDiff = 7
+      for (const b of weeklyDayBits) {
+        let diff = Math.round(Math.log2(b)) - todayDow
+        if (diff <= 0) diff += 7
+        if (diff < minDiff) minDiff = diff
+      }
+      const d = new Date(today)
+      d.setDate(d.getDate() + minDiff)
+      return d.toISOString().substring(0, 10)
+    }
+    if (type === 'monthly_on_day') {
+      const day = Math.max(1, Math.min(31, dayOfMonth))
+      const d = new Date(today.getFullYear(), today.getMonth(), day)
+      if (d <= today) {
+        d.setMonth(d.getMonth() + 1)
+        d.setDate(day)
+      }
+      return d.toISOString().substring(0, 10)
+    }
+    if (type === 'custom_days') {
+      const d = new Date(today)
+      d.setDate(d.getDate() + Math.max(1, intervalDays))
+      return d.toISOString().substring(0, 10)
+    }
+    if (type === 'yearly') {
+      const d = new Date(today)
+      d.setFullYear(d.getFullYear() + 1)
+      return d.toISOString().substring(0, 10)
+    }
+    return ''
+  }
+
   import {
     format,
     startOfMonth,
@@ -349,7 +498,13 @@
   import { calendarApi } from '../api/calendar.api'
   import { itemsApi } from '../api/items.api'
   import { listsApi } from '../api/lists.api'
-  import type { CalendarItem, CalendarCompletion, TodoList, RecurrenceRule } from '../types'
+  import type {
+    CalendarItem,
+    CalendarCompletion,
+    TodoItem,
+    TodoList,
+    RecurrenceRule,
+  } from '../types'
   import { computeUrgencyLevel } from '../composables/useUrgency'
 
   const currentMonth = ref(startOfMonth(new Date()))
@@ -461,16 +616,31 @@
   const addError = ref('')
 
   const BLANK_ADD_FORM = () => ({
-    listId: '',
+    listId: allLists.value.length === 1 ? allLists.value[0].id : '',
     title: '',
     description: '',
+    startDate: '',
+    startTime: '',
     dueDate: '',
+    endTime: '',
+    amount: '',
+    currency: '',
     recurrenceType: 'none' as string,
     dayOfMonth: 1,
     intervalDays: 30,
     weekdayMask: 2, // Monday by default
+    weeklyDayBits: [] as number[],
   })
   const addForm = ref(BLANK_ADD_FORM())
+
+  // When the list changes, default currency to that list's defaultCurrency
+  watch(
+    () => addForm.value.listId,
+    (id) => {
+      const list = allLists.value.find((l) => l.id === id)
+      addForm.value.currency = list?.defaultCurrency ?? ''
+    }
+  )
 
   function openAddModal(date: Date | null) {
     addForm.value = BLANK_ADD_FORM()
@@ -487,18 +657,29 @@
     showAddModal.value = true
   }
 
-  // When switching recurrence type, default derived fields from the selected due date
+  // When switching recurrence type, default derived fields from the selected due date,
+  // or auto-fill the due date from the first occurrence if none is set.
   watch(
     () => addForm.value.recurrenceType,
     (type) => {
-      if (!addForm.value.dueDate) return
-      const d = new Date(addForm.value.dueDate)
-      if (isNaN(d.getTime())) return
-      if (type === 'monthly_on_day') {
-        addForm.value.dayOfMonth = d.getDate()
-      } else if (type === 'weekly_on_day') {
-        // Set bitmask to the weekday of the selected due date (Sun=1, Mon=2, …)
-        addForm.value.weekdayMask = 1 << d.getDay()
+      if (addForm.value.dueDate) {
+        const d = new Date(addForm.value.dueDate)
+        if (!isNaN(d.getTime())) {
+          if (type === 'monthly_on_day') {
+            addForm.value.dayOfMonth = d.getDate()
+          } else if (type === 'weekly_on_day') {
+            addForm.value.weekdayMask = 1 << d.getDay()
+          }
+        }
+      } else if (type !== 'none') {
+        const first = computeFirstOccurrence(
+          type,
+          addForm.value.weekdayMask,
+          addForm.value.weeklyDayBits,
+          addForm.value.dayOfMonth,
+          addForm.value.intervalDays
+        )
+        if (first) addForm.value.dueDate = first
       }
     }
   )
@@ -520,7 +701,14 @@
       const payload: Record<string, unknown> = {
         title: addForm.value.title,
         description: addForm.value.description || undefined,
+        startDate: addForm.value.startDate
+          ? new Date(addForm.value.startDate).toISOString()
+          : undefined,
         dueDate: addForm.value.dueDate ? new Date(addForm.value.dueDate).toISOString() : undefined,
+        startTime: addForm.value.startTime || undefined,
+        endTime: addForm.value.endTime || undefined,
+        amount: addForm.value.amount ? parseFloat(addForm.value.amount) : undefined,
+        currency: addForm.value.currency || undefined,
       }
       if (addForm.value.recurrenceType !== 'none') {
         payload.recurrenceRule = {
@@ -532,10 +720,11 @@
           intervalDays:
             addForm.value.recurrenceType === 'custom_days' ? addForm.value.intervalDays : undefined,
           weekdayMask:
-            addForm.value.recurrenceType === 'weekly_on_day' ||
-            addForm.value.recurrenceType === 'weekly'
+            addForm.value.recurrenceType === 'weekly_on_day'
               ? addForm.value.weekdayMask
-              : undefined,
+              : addForm.value.recurrenceType === 'weekly'
+                ? addForm.value.weeklyDayBits.reduce((acc, b) => acc | b, 0)
+                : undefined,
         }
       }
       await listsApi.createItem(
@@ -543,7 +732,7 @@
         payload as Parameters<typeof listsApi.createItem>[1]
       )
       closeAddModal()
-      await loadData()
+      await Promise.all([loadData(), loadUnscheduled()])
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string }
       addError.value =
@@ -666,11 +855,36 @@
     completionList.value = fetchedCompletions
   }
 
+  // ── Unscheduled items ──────────────────────────────────────────────────────
+  const allItemsByList = ref<Record<string, TodoItem[]>>({})
+
+  async function loadUnscheduled() {
+    const map: Record<string, TodoItem[]> = {}
+    await Promise.all(
+      allLists.value.map(async (list) => {
+        const listItems = await listsApi.getItems(list.id)
+        map[list.id] = listItems.filter((item) => !item.isArchived && !item.dueDate)
+      })
+    )
+    allItemsByList.value = map
+  }
+
+  const unscheduledLists = computed(() =>
+    allLists.value
+      .filter((list) => visibleListIds.value.has(list.id))
+      .map((list) => ({
+        listId: list.id,
+        listTitle: list.title,
+        items: allItemsByList.value[list.id] ?? [],
+      }))
+      .filter((group) => group.items.length > 0)
+  )
+
   onMounted(async () => {
     document.addEventListener('click', handleDocumentClick, true)
     allLists.value = await listsApi.getAll()
     visibleListIds.value = new Set(allLists.value.map((l) => l.id))
-    await loadData()
+    await Promise.all([loadData(), loadUnscheduled()])
   })
 
   onUnmounted(() => {
@@ -1242,6 +1456,100 @@
   .modal-close-btn {
     margin-top: 1.25rem;
     width: 100%;
+  }
+
+  /* ── Two-column form rows ─────────────────────────────────── */
+  .form-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+  .form-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .form-col .form-input {
+    width: 100%;
+  }
+  .input-clear-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .input-clear-row .form-input {
+    flex: 1;
+  }
+  .btn-clear {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .btn-clear:hover {
+    color: var(--urgency-over-text, #b91c1c);
+  }
+
+  /* ── Weekday checkboxes ───────────────────────────────────── */
+  .weekday-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+  }
+  .weekday-check {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  /* ── Unscheduled items section ────────────────────────────── */
+  .unscheduled-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+  }
+  .unscheduled-heading {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin: 0 0 0.75rem;
+  }
+  .unscheduled-group {
+    margin-bottom: 1rem;
+  }
+  .unscheduled-list-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+  }
+  .unscheduled-item {
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    color: var(--color-text);
+    background: var(--color-surface-sunken);
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .unscheduled-item:hover {
+    background: var(--color-surface);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+  .unscheduled-item-desc {
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
   }
 
   /* ── Responsive ───────────────────────────────────────────── */
