@@ -91,11 +91,12 @@
           <div class="cal-items">
             <!-- Upcoming items -->
             <div
-              v-for="item in cell.items"
-              :key="item.id"
+              v-for="{ item, spanPos } in cell.items"
+              :key="`${item.id}-${cell.key}`"
               class="cal-item"
-              :class="`cal-item-${computeUrgencyLevel(item.dueDate)}`"
-              @click="$router.push(`/lists/${item.listId}?from=calendar`)"
+              :class="[`cal-item-${computeUrgencyLevel(item.dueDate)}`, `cal-item--${spanPos}`]"
+              :title="item.title"
+              @click="$router.push(`/lists/${item.listId}?from=calendar&editItem=${item.id}`)"
               @mouseenter="showItemHover($event, item)"
               @mouseleave="scheduleHide"
             >
@@ -491,6 +492,7 @@
 
   import {
     format,
+    startOfDay,
     startOfMonth,
     endOfMonth,
     startOfWeek,
@@ -911,25 +913,47 @@
   const calendarCells = computed(() => {
     const from = startOfWeek(startOfMonth(currentMonth.value))
     const to = endOfWeek(endOfMonth(currentMonth.value))
-    return eachDayOfInterval({ start: from, end: to }).map((date) => ({
-      key: date.toISOString(),
-      date,
-      day: date.getDate(),
-      inMonth: isSameMonth(date, currentMonth.value),
-      isToday: isToday(date),
-      items: items.value.filter(
-        (item) =>
-          item.dueDate &&
-          isSameDay(parseISO(item.dueDate), date) &&
-          visibleListIds.value.has(item.listId)
-      ),
-      completions: completionList.value.filter(
-        (c) =>
-          c.dueDateSnapshot &&
-          isSameDay(parseISO(c.dueDateSnapshot), date) &&
-          visibleListIds.value.has(c.listId)
-      ),
-    }))
+    return eachDayOfInterval({ start: from, end: to }).map((date) => {
+      const cellDay = startOfDay(date)
+      const cellItems = items.value
+        .filter((item) => {
+          if (!visibleListIds.value.has(item.listId)) return false
+          const startD = item.startDate ? startOfDay(parseISO(item.startDate)) : null
+          const endD = item.dueDate ? startOfDay(parseISO(item.dueDate)) : null
+          // Only treat as a range when startDate is strictly before dueDate
+          const useRange = startD && endD && startD.getTime() < endD.getTime()
+          const effectiveStart = useRange ? startD : (endD ?? startD)
+          const effectiveEnd = endD ?? startD
+          if (!effectiveStart || !effectiveEnd) return false
+          return (
+            cellDay.getTime() >= effectiveStart.getTime() &&
+            cellDay.getTime() <= effectiveEnd.getTime()
+          )
+        })
+        .map((item) => {
+          const startD = item.startDate ? startOfDay(parseISO(item.startDate)) : null
+          const endD = item.dueDate ? startOfDay(parseISO(item.dueDate)) : null
+          const isMultiDay = startD && endD && startD.getTime() < endD.getTime()
+          if (!isMultiDay) return { item, spanPos: 'single' as const }
+          if (cellDay.getTime() === startD!.getTime()) return { item, spanPos: 'start' as const }
+          if (cellDay.getTime() === endD!.getTime()) return { item, spanPos: 'end' as const }
+          return { item, spanPos: 'mid' as const }
+        })
+      return {
+        key: date.toISOString(),
+        date,
+        day: date.getDate(),
+        inMonth: isSameMonth(date, currentMonth.value),
+        isToday: isToday(date),
+        items: cellItems,
+        completions: completionList.value.filter(
+          (c) =>
+            c.dueDateSnapshot &&
+            isSameDay(parseISO(c.dueDateSnapshot), date) &&
+            visibleListIds.value.has(c.listId)
+        ),
+      }
+    })
   })
 
   function formatDate(iso: string) {
@@ -1259,6 +1283,37 @@
   .cal-item-none {
     background: var(--color-border);
     color: var(--color-text-muted);
+  }
+
+  /* Multi-day span position indicators */
+  .cal-item--single {
+    border-radius: 4px;
+  }
+  .cal-item--start {
+    border-radius: 4px 0 0 4px;
+  }
+  .cal-item--start::after {
+    content: ' ›';
+    opacity: 0.6;
+  }
+  .cal-item--mid {
+    border-radius: 0;
+    opacity: 0.82;
+  }
+  .cal-item--mid::before {
+    content: '· ';
+    opacity: 0.5;
+  }
+  .cal-item--mid::after {
+    content: ' ·';
+    opacity: 0.5;
+  }
+  .cal-item--end {
+    border-radius: 0 4px 4px 0;
+  }
+  .cal-item--end::before {
+    content: '‹ ';
+    opacity: 0.6;
   }
 
   /* Completed items – green with strikethrough */
