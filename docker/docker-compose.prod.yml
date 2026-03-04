@@ -36,6 +36,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 30s
 
   web:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-your-org}/todo-web:${TAG:-latest}
