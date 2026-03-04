@@ -39,6 +39,6 @@ COPY --from=builder /app/packages/api/src/db/migrations ./packages/api/src/db/mi
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-  CMD wget -qO- http://127.0.0.1:3000/health || exit 1
+  CMD node -e "require('http').get('http://127.0.0.1:' + (process.env.PORT||3000) + '/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 CMD ["node", "packages/api/dist/index.js"]
