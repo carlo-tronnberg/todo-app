@@ -39,6 +39,24 @@ Given(
   }
 )
 
+Given(
+  'I have items with relative due dates in list {string}:',
+  async function (this: TodoWorld, listTitle: string, table: DataTable) {
+    if (!this.lists.has(listTitle)) {
+      await this.createListViaApi(listTitle)
+    }
+    for (const row of table.hashes()) {
+      let dueDate: string | undefined
+      if (row.daysFromNow) {
+        const d = new Date()
+        d.setDate(d.getDate() + parseInt(row.daysFromNow, 10))
+        dueDate = d.toISOString().slice(0, 10)
+      }
+      await this.createItemViaApi(listTitle, { title: row.title, dueDate })
+    }
+  }
+)
+
 // ── Item form fields ───────────────────────────────────────────────────
 
 When('I fill in the item title with {string}', async function (this: TodoWorld, title: string) {
