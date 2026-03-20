@@ -70,13 +70,13 @@ Feature: Item Management
     Then I should see "Copy of Template task" in the items list
 
   Scenario: View item urgency levels
-    Given I have the following items in list "Tasks":
-      | title        | dueDate    |
-      | Overdue task | 2026-03-01 |
-      | Urgent task  | 2026-03-20 |
-      | Soon task    | 2026-03-25 |
-      | Later task   | 2026-04-15 |
-      | No date task |            |
+    Given I have items with relative due dates in list "Tasks":
+      | title        | daysFromNow |
+      | Overdue task | -5          |
+      | Urgent task  | 2           |
+      | Soon task    | 6           |
+      | Later task   | 20          |
+      | No date task |             |
     When I view the items list
     Then "Overdue task" should have urgency class "urgency-overdue"
     And "Urgent task" should have urgency class "urgency-high"
