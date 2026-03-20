@@ -39,5 +39,5 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/", "node_modules/", "*.d.ts", "coverage/", "packages/web/e2e/"]
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "packages/web/e2e/"]
 }
