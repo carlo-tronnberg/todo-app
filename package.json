@@ -19,7 +19,10 @@
     "version-packages": "changeset version",
     "release": "changeset publish",
     "dev:api": "npm run dev --workspace=packages/api",
-    "dev:web": "npm run dev --workspace=packages/web"
+    "dev:web": "npm run dev --workspace=packages/web",
+    "agent": "npx tsx agents/agent.ts",
+    "agent:analyze": "npx tsx agents/analyze.ts",
+    "agent:codegen": "npx tsx agents/codegen.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
@@ -36,7 +39,7 @@
     "typescript": "^5.5.2"
   },
   "lint-staged": {
-    "*.{ts,vue}": [
+    "!(packages/web/e2e/**)*.{ts,vue}": [
       "eslint --fix --max-warnings 0",
       "prettier --write"
     ],
@@ -45,5 +48,8 @@
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.80"
   }
 }
