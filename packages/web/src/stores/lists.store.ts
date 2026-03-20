@@ -13,7 +13,7 @@ export const useListsStore = defineStore('lists', () => {
     error.value = null
     try {
       lists.value = await listsApi.getAll()
-    } catch (e) {
+    } catch {
       error.value = 'Failed to load lists'
     } finally {
       loading.value = false
