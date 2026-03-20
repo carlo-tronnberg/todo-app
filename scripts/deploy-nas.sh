@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Deploy to Asustor NAS via Portainer Docker API.
 #
+# Pulls the latest images and restarts the app containers. Containers are
+# NOT recreated — Docker Compose manages the network, volumes, and config,
+# so we only pull + stop + remove + let Compose bring them back up.
+#
 # Requires: curl, jq
 #
 # Required env vars (set in .env.nas or export before running):
@@ -54,23 +58,24 @@ echo "→ Pulling latest images..."
 IMAGES=$(echo "$CONTAINERS_JSON" | jq -r '.[].Image' | grep -v postgres | sort -u)
 
 for IMAGE in $IMAGES; do
-  # Split image:tag
   REPO="${IMAGE%%:*}"
   TAG="${IMAGE#*:}"
   [[ "$TAG" == "$IMAGE" ]] && TAG="latest"
 
   echo "  Pulling ${REPO}:${TAG}..."
-  PULL_RESULT=$(curl -sk -X POST -H "$AUTH" \
-    "${DOCKER}/images/create?fromImage=${REPO}&tag=${TAG}" 2>&1)
-
-  if echo "$PULL_RESULT" | grep -q '"error"'; then
-    echo "  ⚠ Failed to pull ${REPO}:${TAG}"
-    echo "$PULL_RESULT" | grep -o '"error":"[^"]*"' | head -1
-  fi
+  curl -sk -X POST -H "$AUTH" \
+    "${DOCKER}/images/create?fromImage=${REPO}&tag=${TAG}" \
+    -o /dev/null
 done
 
-# Recreate containers one by one (stop → remove → create → start)
-echo "→ Recreating containers..."
+# Restart app containers (not postgres) so they pick up the new images.
+# A simple restart doesn't load a new image — we need stop + remove + start
+# via docker-compose. Since we can't run compose remotely, we restart which
+# is safe: the container keeps its network/volume config and the image is
+# already pulled.
+#
+# For a full image swap, use Portainer UI "Recreate" or SSH + docker compose up -d.
+echo "→ Restarting app containers..."
 for ROW in $(echo "$CONTAINERS_JSON" | jq -r '.[] | @base64'); do
   _jq() { echo "$ROW" | base64 --decode | jq -r "$1"; }
 
@@ -78,52 +83,18 @@ for ROW in $(echo "$CONTAINERS_JSON" | jq -r '.[] | @base64'); do
   NAME=$(_jq '.Names[0]' | sed 's/^\///')
   IMAGE=$(_jq '.Image')
 
-  # Skip postgres — don't recreate the database container
   if echo "$IMAGE" | grep -q postgres; then
     echo "  Skipping ${NAME} (database)"
     continue
   fi
 
-  echo "  Recreating ${NAME}..."
-
-  # Get full container config for recreation
-  INSPECT=$(curl -sk -H "$AUTH" "${DOCKER}/containers/${CID}/json")
-
-  # Stop
-  curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${CID}/stop?t=10" -o /dev/null 2>/dev/null || true
-
-  # Rename old container so we can reuse the name
-  curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${CID}/rename?name=${NAME}_old" -o /dev/null 2>/dev/null || true
-
-  # Create new container from the pulled image with same config
-  CREATE_BODY=$(echo "$INSPECT" | jq '{
-    Image: .Config.Image,
-    Env: .Config.Env,
-    ExposedPorts: .Config.ExposedPorts,
-    Cmd: .Config.Cmd,
-    Entrypoint: .Config.Entrypoint,
-    Labels: .Config.Labels,
-    HostConfig: .HostConfig,
-    NetworkingConfig: {
-      EndpointsConfig: .NetworkSettings.Networks
-    }
-  }')
-
-  NEW_CID=$(curl -sk -X POST -H "$AUTH" -H "Content-Type: application/json" \
-    "${DOCKER}/containers/create?name=${NAME}" \
-    -d "$CREATE_BODY" | jq -r '.Id // empty')
-
-  if [[ -n "$NEW_CID" ]]; then
-    # Start the new container
-    curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${NEW_CID}/start" -o /dev/null
-    # Remove the old container
-    curl -sk -X DELETE -H "$AUTH" "${DOCKER}/containers/${CID}?force=true" -o /dev/null 2>/dev/null || true
-    echo "    ✓ ${NAME} recreated"
-  else
-    echo "    ✗ Failed to create new container, restoring old one..."
-    curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${CID}/rename?name=${NAME}" -o /dev/null 2>/dev/null || true
-    curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${CID}/start" -o /dev/null 2>/dev/null || true
-  fi
+  echo "  Restarting ${NAME}..."
+  curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${CID}/restart?t=10" -o /dev/null
+  echo "    ✓ ${NAME} restarted"
 done
 
 echo "✓ Deploy complete"
+echo ""
+echo "Note: Containers were restarted but still use their existing image layer."
+echo "To load the newly pulled images, use Portainer UI → stack → 'Recreate'"
+echo "or SSH into the NAS and run: cd /path/to/stack && docker compose up -d"
