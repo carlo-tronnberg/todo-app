@@ -6,6 +6,9 @@
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
+  "globals": {
+    "__APP_VERSION__": "readonly"
+  },
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
