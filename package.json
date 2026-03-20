@@ -20,9 +20,11 @@
     "release": "changeset publish",
     "dev:api": "npm run dev --workspace=packages/api",
     "dev:web": "npm run dev --workspace=packages/web",
+    "deploy:nas": "./scripts/deploy-nas.sh",
     "agent": "npx tsx agents/agent.ts",
     "agent:analyze": "npx tsx agents/analyze.ts",
-    "agent:codegen": "npx tsx agents/codegen.ts"
+    "agent:codegen": "npx tsx agents/codegen.ts",
+    "docker": "docker compose -f docker/docker-compose.dev.yml up"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
