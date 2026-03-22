@@ -23,9 +23,7 @@ When('I navigate to the audit log page', async function (this: TodoWorld) {
 Then(
   'I should see an audit entry with action {string}',
   async function (this: TodoWorld, action: string) {
-    await expect(
-      this.page.locator(`.audit-action:has-text("${action}")`)
-    ).toBeVisible()
+    await expect(this.page.locator(`.audit-action:has-text("${action}")`)).toBeVisible()
   }
 )
 

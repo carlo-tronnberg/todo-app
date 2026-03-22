@@ -36,16 +36,10 @@ Given(
 
 // ── Generic assertions ─────────────────────────────────────────────────
 
-Then(
-  'I should see {string} as the page heading',
-  async function (this: TodoWorld, text: string) {
-    await expect(this.page.locator('h1')).toContainText(text)
-  }
-)
+Then('I should see {string} as the page heading', async function (this: TodoWorld, text: string) {
+  await expect(this.page.locator('h1')).toContainText(text)
+})
 
-Then(
-  'I should see {string} as a success message',
-  async function (this: TodoWorld, text: string) {
-    await expect(this.page.locator('.alert-success')).toContainText(text)
-  }
-)
+Then('I should see {string} as a success message', async function (this: TodoWorld, text: string) {
+  await expect(this.page.locator('.alert-success')).toContainText(text)
+})

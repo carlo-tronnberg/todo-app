@@ -6,13 +6,7 @@ import { TodoWorld } from '../support/world'
 
 Given(
   'I have a recurring item {string} due on {string} with monthly recurrence on day {string} in list {string}',
-  async function (
-    this: TodoWorld,
-    title: string,
-    dueDate: string,
-    day: string,
-    listTitle: string
-  ) {
+  async function (this: TodoWorld, title: string, dueDate: string, day: string, listTitle: string) {
     if (!this.lists.has(listTitle)) {
       await this.createListViaApi(listTitle)
     }
@@ -89,16 +83,11 @@ When('I select currency {string}', async function (this: TodoWorld, currency: st
   await currencyCol.locator('select.form-input').selectOption(currency)
 })
 
-When(
-  'I select recurrence type {string}',
-  async function (this: TodoWorld, recurrenceType: string) {
-    const modal = this.page.locator('.modal')
-    const recurrenceGroup = modal.locator(
-      '.form-group:has(.form-label:has-text("Recurrence"))'
-    )
-    await recurrenceGroup.locator('select.form-input').selectOption(recurrenceType)
-  }
-)
+When('I select recurrence type {string}', async function (this: TodoWorld, recurrenceType: string) {
+  const modal = this.page.locator('.modal')
+  const recurrenceGroup = modal.locator('.form-group:has(.form-label:has-text("Recurrence"))')
+  await recurrenceGroup.locator('select.form-input').selectOption(recurrenceType)
+})
 
 When('I set interval days to {string}', async function (this: TodoWorld, days: string) {
   const modal = this.page.locator('.modal')
@@ -127,13 +116,10 @@ When(
   }
 )
 
-When(
-  'I enter the completion note {string}',
-  async function (this: TodoWorld, note: string) {
-    const modal = this.page.locator('.modal')
-    await modal.locator('textarea.form-input').fill(note)
-  }
-)
+When('I enter the completion note {string}', async function (this: TodoWorld, note: string) {
+  const modal = this.page.locator('.modal')
+  await modal.locator('textarea.form-input').fill(note)
+})
 
 When(
   'I click the edit button for item {string}',
@@ -178,44 +164,37 @@ When(
 // ── Item assertions ────────────────────────────────────────────────────
 
 Then('I should see {string} in the items list', async function (this: TodoWorld, title: string) {
-  await expect(
-    this.page.locator(`.todo-title:has-text("${title}")`)
-  ).toBeVisible()
+  await expect(this.page.locator(`.todo-title:has-text("${title}")`)).toBeVisible()
 })
 
 Then(
   '{string} should no longer appear in the items list',
   async function (this: TodoWorld, title: string) {
-    await expect(
-      this.page.locator(`.todo-title:has-text("${title}")`)
-    ).not.toBeVisible({ timeout: 10_000 })
+    await expect(this.page.locator(`.todo-title:has-text("${title}")`)).not.toBeVisible({
+      timeout: 10_000,
+    })
   }
 )
 
-Then(
-  'I should see the recurrence label {string}',
-  async function (this: TodoWorld, label: string) {
-    await expect(this.page.locator('.meta-recurrence')).toContainText(label)
-  }
-)
+Then('I should see the recurrence label {string}', async function (this: TodoWorld, label: string) {
+  await expect(this.page.locator('.meta-recurrence')).toContainText(label)
+})
 
 Then(
   'the due date for {string} should advance to the next occurrence',
   async function (this: TodoWorld, itemTitle: string) {
     // After completion of a recurring item, the due date changes.
     // We verify the item still shows in the list (with its new date).
-    await expect(
-      this.page.locator(`.todo-title:has-text("${itemTitle}")`)
-    ).toBeVisible()
+    await expect(this.page.locator(`.todo-title:has-text("${itemTitle}")`)).toBeVisible()
   }
 )
 
 Then(
   'I should see {int} items containing {string}',
   async function (this: TodoWorld, count: number, text: string) {
-    await expect(
-      this.page.locator(`.todo-title:has-text("${text}")`)
-    ).toHaveCount(count, { timeout: 10_000 })
+    await expect(this.page.locator(`.todo-title:has-text("${text}")`)).toHaveCount(count, {
+      timeout: 10_000,
+    })
   }
 )
 

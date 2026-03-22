@@ -32,26 +32,24 @@ When(
 
 // ── Card actions ───────────────────────────────────────────────────────
 
-When(
-  'I click the edit button for {string}',
-  async function (this: TodoWorld, listTitle: string) {
-    // Reload dashboard so API-created lists are visible
-    await this.page.reload()
-    await this.page.waitForSelector('.list-card')
-    const card = this.page.locator('.list-card', { has: this.page.locator(`.list-title:has-text("${listTitle}")`) })
-    await card.locator('.card-action-btn').first().click()
-  }
-)
+When('I click the edit button for {string}', async function (this: TodoWorld, listTitle: string) {
+  // Reload dashboard so API-created lists are visible
+  await this.page.reload()
+  await this.page.waitForSelector('.list-card')
+  const card = this.page.locator('.list-card', {
+    has: this.page.locator(`.list-title:has-text("${listTitle}")`),
+  })
+  await card.locator('.card-action-btn').first().click()
+})
 
-When(
-  'I click the delete button for {string}',
-  async function (this: TodoWorld, listTitle: string) {
-    await this.page.reload()
-    await this.page.waitForSelector('.list-card')
-    const card = this.page.locator('.list-card', { has: this.page.locator(`.list-title:has-text("${listTitle}")`) })
-    await card.locator('.card-action-btn--danger').click()
-  }
-)
+When('I click the delete button for {string}', async function (this: TodoWorld, listTitle: string) {
+  await this.page.reload()
+  await this.page.waitForSelector('.list-card')
+  const card = this.page.locator('.list-card', {
+    has: this.page.locator(`.list-title:has-text("${listTitle}")`),
+  })
+  await card.locator('.card-action-btn--danger').click()
+})
 
 When('I click on the list {string}', async function (this: TodoWorld, listTitle: string) {
   await this.page.reload()
@@ -77,9 +75,6 @@ Then(
   }
 )
 
-Then(
-  'I should see {string} as the list heading',
-  async function (this: TodoWorld, title: string) {
-    await expect(this.page.locator('.list-header h1')).toContainText(title)
-  }
-)
+Then('I should see {string} as the list heading', async function (this: TodoWorld, title: string) {
+  await expect(this.page.locator('.list-header h1')).toContainText(title)
+})

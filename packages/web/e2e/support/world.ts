@@ -105,10 +105,7 @@ export class TodoWorld extends World {
     await this.page.waitForSelector('.auth-card')
 
     // Set the correct localStorage key the app uses
-    await this.page.evaluate(
-      (t: string) => localStorage.setItem('auth_token', t),
-      data.token
-    )
+    await this.page.evaluate((t: string) => localStorage.setItem('auth_token', t), data.token)
 
     // Navigate to dashboard — the auth store reads auth_token on init
     await this.page.goto(`${this.baseUrl}/`)

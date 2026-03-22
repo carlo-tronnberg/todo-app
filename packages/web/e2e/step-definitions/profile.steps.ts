@@ -31,13 +31,10 @@ When(
   }
 )
 
-When(
-  'I fill in the phone field with {string}',
-  async function (this: TodoWorld, value: string) {
-    const section = this.page.locator('.profile-section').first()
-    await section.locator('input[type="tel"]').fill(value)
-  }
-)
+When('I fill in the phone field with {string}', async function (this: TodoWorld, value: string) {
+  const section = this.page.locator('.profile-section').first()
+  await section.locator('input[type="tel"]').fill(value)
+})
 
 // ── Change password form ───────────────────────────────────────────────
 

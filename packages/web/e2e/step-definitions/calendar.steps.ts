@@ -53,13 +53,10 @@ When('I click the previous month button', async function (this: TodoWorld) {
   await this.page.waitForTimeout(300)
 })
 
-When(
-  'I click the filter chip for {string}',
-  async function (this: TodoWorld, listTitle: string) {
-    await this.page.locator(`.cal-filter-chip:has-text("${listTitle}")`).click()
-    await this.page.waitForTimeout(300)
-  }
-)
+When('I click the filter chip for {string}', async function (this: TodoWorld, listTitle: string) {
+  await this.page.locator(`.cal-filter-chip:has-text("${listTitle}")`).click()
+  await this.page.waitForTimeout(300)
+})
 
 // ── Assertions ─────────────────────────────────────────────────────────
 
@@ -69,9 +66,7 @@ Then(
     const cell = this.page.locator('.cal-cell', {
       has: this.page.locator(`.cal-date-num:has-text("${day}")`),
     })
-    await expect(
-      cell.locator(`.cal-item:has-text("${itemTitle}")`)
-    ).toBeVisible()
+    await expect(cell.locator(`.cal-item:has-text("${itemTitle}")`)).toBeVisible()
   }
 )
 
@@ -82,21 +77,16 @@ Then(
   }
 )
 
-Then(
-  'I should see the current month as the calendar heading',
-  async function (this: TodoWorld) {
-    const now = new Date()
-    const monthName = now.toLocaleString('en-US', { month: 'long' })
-    const year = now.getFullYear()
-    await expect(this.page.locator('.cal-heading-btn')).toContainText(`${monthName} ${year}`)
-  }
-)
+Then('I should see the current month as the calendar heading', async function (this: TodoWorld) {
+  const now = new Date()
+  const monthName = now.toLocaleString('en-US', { month: 'long' })
+  const year = now.getFullYear()
+  await expect(this.page.locator('.cal-heading-btn')).toContainText(`${monthName} ${year}`)
+})
 
 Then(
   'I should not see {string} on the calendar',
   async function (this: TodoWorld, itemTitle: string) {
-    await expect(
-      this.page.locator(`.cal-item:has-text("${itemTitle}")`)
-    ).not.toBeVisible()
+    await expect(this.page.locator(`.cal-item:has-text("${itemTitle}")`)).not.toBeVisible()
   }
 )

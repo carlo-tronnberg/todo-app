@@ -92,9 +92,6 @@ Then('I should see {string} in the navigation', async function (this: TodoWorld,
   await expect(this.page.locator('.nav-username')).toContainText(text)
 })
 
-Then(
-  'I should see an error message {string}',
-  async function (this: TodoWorld, message: string) {
-    await expect(this.page.locator('.error-text')).toContainText(message)
-  }
-)
+Then('I should see an error message {string}', async function (this: TodoWorld, message: string) {
+  await expect(this.page.locator('.error-text')).toContainText(message)
+})
