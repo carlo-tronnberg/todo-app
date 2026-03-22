@@ -39,6 +39,8 @@
     <main class="main-content">
       <router-view />
     </main>
+
+    <span class="app-version">v{{ appVersion }}</span>
   </div>
 </template>
 
@@ -51,6 +53,7 @@
   const auth = useAuthStore()
   const theme = useTheme()
   const router = useRouter()
+  const appVersion = __APP_VERSION__
 
   onMounted(() => {
     auth.fetchMe()
@@ -204,5 +207,16 @@
     .main-content {
       padding: 1rem 0.75rem;
     }
+  }
+
+  .app-version {
+    position: fixed;
+    bottom: 0.5rem;
+    right: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--color-text-muted, #999);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 1;
   }
 </style>

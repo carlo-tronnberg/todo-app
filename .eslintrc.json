@@ -6,6 +6,9 @@
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
+  "globals": {
+    "__APP_VERSION__": "readonly"
+  },
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
@@ -36,5 +39,5 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/", "node_modules/", "*.d.ts", "coverage/", "packages/web/e2e/"]
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "packages/web/e2e/"]
 }
