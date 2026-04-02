@@ -164,8 +164,8 @@ describe('ListDetailView', () => {
     await completeConfirmBtn.trigger('click')
     await flushPromises()
 
-    // completionNote is '' which is falsy, so || undefined makes it undefined
-    expect(mockItemsApi.complete).toHaveBeenCalledWith('i1', undefined)
+    // No note or amount entered, so opts is empty object
+    expect(mockItemsApi.complete).toHaveBeenCalledWith('i1', {})
   })
 
   it('opens edit modal when edit button is clicked', async () => {

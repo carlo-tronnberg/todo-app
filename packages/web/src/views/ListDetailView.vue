@@ -247,13 +247,39 @@
     <div v-if="completingItemId" class="modal-backdrop">
       <div class="modal card" role="dialog" aria-modal="true" aria-label="Complete Item">
         <h2>Complete Item</h2>
-        <p style="margin-bottom: 1rem; color: #64748b">Add an optional note for this completion:</p>
+        <div class="form-group completion-amount">
+          <label class="form-label">Amount</label>
+          <div class="form-row">
+            <input
+              ref="completionAmountRef"
+              v-model="completionAmount"
+              type="number"
+              step="0.01"
+              min="0"
+              class="form-input"
+              placeholder="0.00"
+              @keydown.enter.prevent="confirmComplete"
+            />
+            <select v-model="completionCurrency" class="form-input" style="max-width: 6rem">
+              <option value="">—</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="SEK">SEK</option>
+              <option value="DKK">DKK</option>
+              <option value="HUF">HUF</option>
+            </select>
+          </div>
+        </div>
+        <p style="margin-bottom: 0.5rem; color: #64748b">
+          Add an optional note for this completion:
+        </p>
         <div class="form-group">
           <textarea
             v-model="completionNote"
             class="form-input"
             rows="3"
             placeholder="Note (optional)"
+            @keydown.enter.prevent="confirmComplete"
           />
         </div>
         <div class="modal-actions">
@@ -266,7 +292,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, watch, nextTick } from 'vue'
 
   const WEEKDAYS = [
     { bit: 2, label: 'Mon' },
@@ -368,6 +394,9 @@
   const editingItem = ref<TodoItem | null>(null)
   const completingItemId = ref<string | null>(null)
   const completionNote = ref('')
+  const completionAmount = ref('')
+  const completionCurrency = ref('')
+  const completionAmountRef = ref<HTMLInputElement | null>(null)
   const saving = ref(false)
   const saveError = ref('')
 
@@ -551,11 +580,22 @@
   function handleComplete(itemId: string) {
     completingItemId.value = itemId
     completionNote.value = ''
+    completionAmount.value = ''
+    // Pre-select the item's currency, or fall back to list default
+    const item = itemsStore.getItems(listId).find((i) => i.id === itemId)
+    completionCurrency.value = item?.currency ?? list.value?.defaultCurrency ?? ''
+    nextTick(() => completionAmountRef.value?.focus())
   }
 
   async function confirmComplete() {
     if (!completingItemId.value) return
-    await itemsStore.completeItem(listId, completingItemId.value, completionNote.value || undefined)
+    const opts: { note?: string; amount?: string; currency?: string } = {}
+    if (completionNote.value) opts.note = completionNote.value
+    if (completionAmount.value) {
+      opts.amount = completionAmount.value
+      opts.currency = completionCurrency.value || undefined
+    }
+    await itemsStore.completeItem(listId, completingItemId.value, opts)
     completingItemId.value = null
   }
 

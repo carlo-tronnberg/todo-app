@@ -58,18 +58,29 @@ describe('itemsApi.archive', () => {
 })
 
 describe('itemsApi.complete', () => {
-  it('POSTs to /items/:id/complete without note', async () => {
+  it('POSTs to /items/:id/complete without opts', async () => {
     mockPost.mockResolvedValue({ data: fakeCompletion })
     const result = await itemsApi.complete('i1')
-    expect(mockPost).toHaveBeenCalledWith('/items/i1/complete', { note: undefined })
+    expect(mockPost).toHaveBeenCalledWith('/items/i1/complete', undefined)
     expect(result).toEqual(fakeCompletion)
   })
 
   it('POSTs to /items/:id/complete with note', async () => {
     mockPost.mockResolvedValue({ data: { ...fakeCompletion, note: 'Done early' } })
-    const result = await itemsApi.complete('i1', 'Done early')
+    const result = await itemsApi.complete('i1', { note: 'Done early' })
     expect(mockPost).toHaveBeenCalledWith('/items/i1/complete', { note: 'Done early' })
     expect(result.note).toBe('Done early')
+  })
+
+  it('POSTs to /items/:id/complete with amount and currency', async () => {
+    mockPost.mockResolvedValue({ data: { ...fakeCompletion, amount: '100.50', currency: 'SEK' } })
+    const result = await itemsApi.complete('i1', { amount: '100.50', currency: 'SEK' })
+    expect(mockPost).toHaveBeenCalledWith('/items/i1/complete', {
+      amount: '100.50',
+      currency: 'SEK',
+    })
+    expect(result.amount).toBe('100.50')
+    expect(result.currency).toBe('SEK')
   })
 })
 

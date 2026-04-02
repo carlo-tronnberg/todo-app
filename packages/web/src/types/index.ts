@@ -66,6 +66,8 @@ export interface Completion {
   dueDateSnapshot?: string | null
   completedAt: string
   note?: string | null
+  amount?: string | null
+  currency?: string | null
 }
 
 export interface ItemComment {

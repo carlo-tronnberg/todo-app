@@ -106,6 +106,8 @@ export const completions = pgTable('completions', {
   dueDateSnapshot: timestamp('due_date_snapshot', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
   note: text('note'),
+  amount: numeric('amount', { precision: 12, scale: 2 }),
+  currency: varchar('currency', { length: 3 }),
 })
 
 // ── item_comments ─────────────────────────────────────────────────────────────
