@@ -16,6 +16,8 @@ interface BackupCompletion {
   completedAt: string
   dueDateSnapshot: string | null
   note: string | null
+  amount: string | null
+  currency: string | null
 }
 
 interface BackupComment {
@@ -142,6 +144,8 @@ export class BackupService {
             completedAt: c.completedAt.toISOString(),
             dueDateSnapshot: c.dueDateSnapshot?.toISOString() ?? null,
             note: c.note,
+            amount: c.amount,
+            currency: c.currency,
           })),
           comments: (commentsByItem.get(item.id) ?? []).map((c) => ({
             content: c.content,
@@ -219,6 +223,8 @@ export class BackupService {
                 completedAt: new Date(c.completedAt),
                 dueDateSnapshot: c.dueDateSnapshot ? new Date(c.dueDateSnapshot) : null,
                 note: c.note ?? null,
+                amount: c.amount ?? null,
+                currency: c.currency ?? null,
               }))
             )
           }
