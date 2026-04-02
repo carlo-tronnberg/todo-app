@@ -17,6 +17,9 @@
         <div v-if="c.dueDateSnapshot" class="history-due">
           <strong>Was due:</strong> {{ formatDate(c.dueDateSnapshot) }}
         </div>
+        <div v-if="c.amount" class="history-amount">
+          <strong>Amount:</strong> {{ c.amount }} {{ c.currency }}
+        </div>
         <div v-if="c.note" class="history-note">{{ c.note }}</div>
         <div class="history-actions">
           <button
@@ -148,6 +151,10 @@
   }
   .history-due {
     color: var(--color-text-muted);
+  }
+  .history-amount {
+    margin-top: 0.25rem;
+    color: var(--color-text);
   }
   .history-note {
     margin-top: 0.5rem;
