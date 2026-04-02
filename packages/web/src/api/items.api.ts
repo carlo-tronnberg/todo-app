@@ -9,8 +9,8 @@ export const itemsApi = {
 
   archive: (id: string) => apiClient.delete(`/items/${id}`),
 
-  complete: (id: string, note?: string) =>
-    apiClient.post<Completion>(`/items/${id}/complete`, { note }).then((r) => r.data),
+  complete: (id: string, opts?: { note?: string; amount?: string; currency?: string }) =>
+    apiClient.post<Completion>(`/items/${id}/complete`, opts).then((r) => r.data),
 
   getCompletions: (id: string) =>
     apiClient.get<Completion[]>(`/items/${id}/completions`).then((r) => r.data),

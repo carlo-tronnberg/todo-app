@@ -240,13 +240,18 @@ export class ItemsService {
     return updated
   }
 
-  async complete(item: { id: string; dueDate: Date | null }, note?: string) {
+  async complete(
+    item: { id: string; dueDate: Date | null },
+    opts?: { note?: string; amount?: string; currency?: string }
+  ) {
     const [completion] = await this.db
       .insert(completions)
       .values({
         itemId: item.id,
         dueDateSnapshot: item.dueDate,
-        note,
+        note: opts?.note,
+        amount: opts?.amount,
+        currency: opts?.currency,
       })
       .returning()
 

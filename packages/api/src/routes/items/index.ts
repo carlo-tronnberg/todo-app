@@ -60,37 +60,38 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // POST /api/items/:itemId/complete
-  app.post<{ Params: { itemId: string }; Body: { note?: string } }>(
-    '/:itemId/complete',
-    auth,
-    async (request, reply) => {
-      const item = await itemsService.findById(request.params.itemId, request.user.sub)
-      if (!item) return reply.notFound()
+  app.post<{
+    Params: { itemId: string }
+    Body: { note?: string; amount?: string; currency?: string }
+  }>('/:itemId/complete', auth, async (request, reply) => {
+    const item = await itemsService.findById(request.params.itemId, request.user.sub)
+    if (!item) return reply.notFound()
 
-      // Record completion with timestamp and due-date snapshot
-      const completion = await itemsService.complete(
-        { id: item.id, dueDate: item.dueDate },
-        request.body?.note
-      )
+    const { note, amount, currency } = request.body ?? {}
 
-      // Advance due date for recurring items
-      if (item.recurrenceRule && item.recurrenceRule.type !== 'none') {
-        const nextDueDate = recurrenceService.computeNextDueDate(item.recurrenceRule, item.dueDate)
-        await itemsService.updateDueDate(item.id, nextDueDate)
-      }
+    // Record completion with timestamp and due-date snapshot
+    const completion = await itemsService.complete(
+      { id: item.id, dueDate: item.dueDate },
+      { note, amount, currency }
+    )
 
-      auditService
-        .log(
-          request.user.sub,
-          'item.complete',
-          'todo_item',
-          item.id,
-          `Completed item "${item.title}"`
-        )
-        .catch(() => {})
-      return reply.code(201).send(completion)
+    // Advance due date for recurring items
+    if (item.recurrenceRule && item.recurrenceRule.type !== 'none') {
+      const nextDueDate = recurrenceService.computeNextDueDate(item.recurrenceRule, item.dueDate)
+      await itemsService.updateDueDate(item.id, nextDueDate)
     }
-  )
+
+    auditService
+      .log(
+        request.user.sub,
+        'item.complete',
+        'todo_item',
+        item.id,
+        `Completed item "${item.title}"`
+      )
+      .catch(() => {})
+    return reply.code(201).send(completion)
+  })
 
   // POST /api/items/:itemId/duplicate
   app.post<{ Params: { itemId: string } }>('/:itemId/duplicate', auth, async (request, reply) => {
