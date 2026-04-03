@@ -236,6 +236,27 @@
             <input v-model.number="form.intervalDays" type="number" min="1" class="form-input" />
           </div>
 
+          <div
+            v-if="
+              ['weekly_on_day', 'weekly', 'monthly_on_day', 'daily', 'yearly'].includes(
+                form.recurrenceType
+              )
+            "
+            class="form-group"
+          >
+            <label class="form-label">Repeat every</label>
+            <div class="form-row">
+              <input
+                v-model.number="form.recurrenceInterval"
+                type="number"
+                min="1"
+                class="form-input"
+                style="max-width: 5rem"
+              />
+              <span class="interval-unit">{{ recurrenceIntervalUnit }}</span>
+            </div>
+          </div>
+
           <p v-if="saveError" class="form-error">{{ saveError }}</p>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModal">Cancel</button>
@@ -500,6 +521,7 @@
     intervalDays: 30,
     weekdayMask: 2, // Monday by default
     weeklyDayBits: [] as number[],
+    recurrenceInterval: 1,
     targetListId: listId,
   })
 
@@ -528,6 +550,16 @@
       }
     }
   )
+
+  const recurrenceIntervalUnit = computed(() => {
+    const t = form.value.recurrenceType
+    const n = form.value.recurrenceInterval
+    if (t === 'daily') return n === 1 ? 'day' : 'days'
+    if (t === 'weekly' || t === 'weekly_on_day') return n === 1 ? 'week' : 'weeks'
+    if (t === 'monthly_on_day') return n === 1 ? 'month' : 'months'
+    if (t === 'yearly') return n === 1 ? 'year' : 'years'
+    return ''
+  })
 
   const items = computed(() => itemsStore.getItems(listId))
   const dueThisMonthCount = computed(() => {
@@ -603,6 +635,7 @@
       weeklyDayBits: WEEKDAYS.filter((d) => (item.recurrenceRule?.weekdayMask ?? 0) & d.bit).map(
         (d) => d.bit
       ),
+      recurrenceInterval: item.recurrenceRule?.interval ?? 1,
       targetListId: item.listId,
     }
   }
@@ -626,6 +659,7 @@
       weeklyDayBits: WEEKDAYS.filter((d) => (item.recurrenceRule?.weekdayMask ?? 0) & d.bit).map(
         (d) => d.bit
       ),
+      recurrenceInterval: item.recurrenceRule?.interval ?? 1,
       targetListId: item.listId,
     }
     showAddModal.value = true
@@ -730,6 +764,8 @@
               : form.value.recurrenceType === 'weekly'
                 ? form.value.weeklyDayBits.reduce((acc, b) => acc | b, 0)
                 : undefined,
+          interval:
+            form.value.recurrenceType !== 'custom_days' ? form.value.recurrenceInterval : undefined,
         }
       } else {
         // Explicitly clear recurrence when "No recurrence" is chosen

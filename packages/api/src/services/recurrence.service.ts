@@ -6,6 +6,7 @@ export interface RecurrenceRule {
   dayOfMonth?: number | null
   intervalDays?: number | null
   weekdayMask?: number | null
+  interval?: number | null // multiplier for the base period (default 1)
   anchorDate?: Date | null
 }
 
@@ -22,26 +23,25 @@ export class RecurrenceService {
     if (rule.type === 'none') return null
 
     const base = currentDueDate ?? new Date()
+    const n = rule.interval ?? 1
 
     switch (rule.type) {
       case 'daily':
-        return addDays(base, 1)
+        return addDays(base, n)
 
       case 'weekly':
-        return this.nextWeeklyDate(base, rule.weekdayMask ?? 0b1111111)
+        return this.nextWeeklyDate(base, rule.weekdayMask ?? 0b1111111, n)
 
       case 'weekly_on_day': {
         // Exactly one weekday bit expected. Fall back to Monday (bit 1) if unset.
         const mask = rule.weekdayMask ?? 0b0000010
         if (mask === 0) throw new Error('weekdayMask must have at least one day set')
-        return this.nextWeeklyDate(base, mask)
+        return this.nextWeeklyDate(base, mask, n)
       }
 
       case 'monthly_on_day': {
         const targetDay = rule.dayOfMonth ?? 1
-        // Move one month forward then set the target day,
-        // clamping to the last day of the month (handles e.g. day=31 in February)
-        const next = addMonths(base, 1)
+        const next = addMonths(base, n)
         return setDate(next, Math.min(targetDay, getDaysInMonth(next)))
       }
 
@@ -52,19 +52,17 @@ export class RecurrenceService {
       }
 
       case 'yearly':
-        // Same month+day, one year later.
-        // date-fns addYears automatically clamps Feb-29 → Feb-28 on non-leap years.
-        return addYears(base, 1)
+        return addYears(base, n)
 
       default:
         return null
     }
   }
 
-  private nextWeeklyDate(from: Date, weekdayMask: number): Date {
+  private nextWeeklyDate(from: Date, weekdayMask: number, interval = 1): Date {
     if (weekdayMask === 0) throw new Error('weekdayMask must have at least one day set')
-    let next = addDays(from, 1)
-    // Advance day-by-day until we hit a day whose bit is set
+    // For interval > 1, jump forward (interval - 1) weeks first, then find the next matching day
+    let next = interval > 1 ? addDays(from, 7 * (interval - 1) + 1) : addDays(from, 1)
     while (!(weekdayMask & (1 << next.getDay()))) {
       next = addDays(next, 1)
     }

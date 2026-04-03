@@ -95,6 +95,15 @@ When('I set interval days to {string}', async function (this: TodoWorld, days: s
   await intervalGroup.locator('input[type="number"]').fill(days)
 })
 
+When(
+  'I set the recurrence interval to {string}',
+  async function (this: TodoWorld, interval: string) {
+    const modal = this.page.locator('.modal')
+    const intervalGroup = modal.locator('.form-group:has(.form-label:has-text("Repeat every"))')
+    await intervalGroup.locator('input[type="number"]').fill(interval)
+  }
+)
+
 When('I set day of month to {string}', async function (this: TodoWorld, day: string) {
   const modal = this.page.locator('.modal')
   const dayGroup = modal.locator('.form-group:has(.form-label:has-text("Day of month"))')

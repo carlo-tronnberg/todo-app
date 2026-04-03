@@ -182,14 +182,14 @@ describe('recurrenceLabel', () => {
     const wrapper = mountItem(
       makeItem({ recurrenceRule: { id: 'r1', type: 'monthly_on_day', dayOfMonth: 15 } })
     )
-    expect(wrapper.text()).toContain('Monthly · day 15')
+    expect(wrapper.text()).toContain('Monthly on day 15')
   })
 
   it('shows monthly label with ? when dayOfMonth is null', () => {
     const wrapper = mountItem(
       makeItem({ recurrenceRule: { id: 'r1', type: 'monthly_on_day', dayOfMonth: null } })
     )
-    expect(wrapper.text()).toContain('Monthly · day ?')
+    expect(wrapper.text()).toContain('Monthly on day ?')
   })
 
   it('shows "Every N days" for custom_days', () => {
