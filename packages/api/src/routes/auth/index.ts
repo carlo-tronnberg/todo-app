@@ -2,9 +2,79 @@ import { FastifyPluginAsync } from 'fastify'
 import { AuthService, UpdateProfileInput } from '../../services/auth.service'
 import { AuditService } from '../../services/audit.service'
 
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ''
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? ''
+
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const authService = new AuthService(app.db)
   const auditService = new AuditService(app.db)
+
+  // GET /api/auth/google — redirect to Google OAuth consent screen
+  app.get('/google', async (_request, reply) => {
+    if (!GOOGLE_CLIENT_ID) return reply.badRequest('Google SSO is not configured')
+
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      response_type: 'code',
+      scope: 'openid email profile',
+      access_type: 'online',
+      prompt: 'select_account',
+    })
+
+    return reply.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+  })
+
+  // GET /api/auth/google/callback — exchange code for tokens, find/create user
+  app.get<{ Querystring: { code?: string; error?: string } }>(
+    '/google/callback',
+    async (request, reply) => {
+      if (request.query.error) {
+        return reply.redirect('/?error=google_denied')
+      }
+
+      const code = request.query.code
+      if (!code) return reply.badRequest('Missing authorization code')
+
+      // Exchange code for tokens
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          redirect_uri: GOOGLE_REDIRECT_URI,
+          grant_type: 'authorization_code',
+        }),
+      })
+
+      if (!tokenRes.ok) return reply.unauthorized('Failed to exchange authorization code')
+
+      const tokens = (await tokenRes.json()) as { id_token?: string }
+      if (!tokens.id_token) return reply.unauthorized('No ID token received')
+
+      // Decode the ID token (JWT) to get user info — Google tokens are signed,
+      // and we verified the exchange with client_secret, so this is safe.
+      const payload = JSON.parse(
+        Buffer.from(tokens.id_token.split('.')[1], 'base64url').toString()
+      ) as { email?: string; given_name?: string; family_name?: string }
+
+      if (!payload.email) return reply.unauthorized('No email in Google profile')
+
+      const user = await authService.findOrCreateByGoogle({
+        email: payload.email,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+      })
+
+      const token = app.jwt.sign({ sub: user.id, email: user.email, username: user.username })
+
+      // Redirect to frontend with token — the frontend reads it from the URL
+      return reply.redirect(`/?token=${encodeURIComponent(token)}`)
+    }
+  )
 
   // POST /api/auth/register
   app.post<{

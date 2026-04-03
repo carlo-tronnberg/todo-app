@@ -30,6 +30,8 @@
           {{ loading ? 'Signing in…' : 'Sign In' }}
         </button>
       </form>
+      <div class="auth-divider"><span>or</span></div>
+      <a href="/api/auth/google" class="btn btn-google">Sign in with Google</a>
       <p class="auth-footer">No account? <router-link to="/register">Register</router-link></p>
     </div>
   </div>
@@ -78,6 +80,40 @@
     font-weight: 700;
     margin-bottom: 1.5rem;
     text-align: center;
+  }
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 1.25rem 0;
+    color: var(--color-text-faint);
+    font-size: 0.8rem;
+  }
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .auth-divider span {
+    padding: 0 0.75rem;
+  }
+  .btn-google {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-google:hover {
+    background: var(--color-surface-sunken);
   }
   .auth-footer {
     text-align: center;
