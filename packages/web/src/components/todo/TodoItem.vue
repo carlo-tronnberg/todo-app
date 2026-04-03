@@ -43,13 +43,13 @@
 
     <!-- Actions -->
     <div class="todo-item-actions">
-      <router-link
-        :to="`/history/${item.id}?listId=${item.listId}`"
+      <button
         class="icon-btn"
         title="View completion history"
+        @click.stop="$emit('history', item.id)"
       >
         ⏱
-      </router-link>
+      </button>
       <button class="icon-btn" title="Duplicate item" @click.stop="$emit('duplicate', item.id)">
         ⎘
       </button>
@@ -76,6 +76,7 @@
     edit: [item: TodoItem]
     archive: [id: string]
     duplicate: [id: string]
+    history: [id: string]
   }>()
 
   // ── Urgency ────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@
           @edit="handleEdit"
           @archive="handleArchive"
           @duplicate="handleDuplicate"
+          @history="openHistoryModal"
         />
 
         <!-- Collapsible comments section -->
@@ -288,6 +289,43 @@
         </div>
       </div>
     </div>
+
+    <!-- History modal -->
+    <div v-if="historyItemId" class="modal-backdrop">
+      <div
+        class="modal card history-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Completion History"
+      >
+        <h2>Completion History</h2>
+        <div v-if="historyLoading" class="loading">Loading…</div>
+        <div v-else-if="historyCompletions.length === 0" class="empty-state">
+          <p>No completions recorded yet.</p>
+        </div>
+        <div v-else class="history-list">
+          <div v-for="c in historyCompletions" :key="c.id" class="history-entry">
+            <div class="history-when">
+              <strong>Completed:</strong> {{ formatHistoryDate(c.completedAt) }}
+            </div>
+            <div v-if="c.dueDateSnapshot" class="history-due">
+              <strong>Was due:</strong>
+              {{ formatHistoryDate(c.dueDateSnapshot).split(' ').slice(0, 3).join(' ') }}
+            </div>
+            <div v-if="c.amount" class="history-amount">
+              <strong>Amount:</strong> {{ c.amount }} {{ c.currency }}
+            </div>
+            <div v-if="c.note" class="history-note">{{ c.note }}</div>
+            <div class="history-actions">
+              <button class="btn btn-secondary btn-sm" @click="undoCompletion(c)">Undo</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" @click="historyItemId = null">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -368,13 +406,13 @@
     return ''
   }
   import { useRoute, useRouter } from 'vue-router'
-  import { format, parseISO } from 'date-fns'
   import { listsApi } from '../api/lists.api'
   import { itemsApi } from '../api/items.api'
   import { useItemsStore } from '../stores/items.store'
   import { useListsStore } from '../stores/lists.store'
   import TodoItemComponent from '../components/todo/TodoItem.vue'
-  import type { TodoItem, TodoList, ItemComment } from '../types'
+  import type { TodoItem, TodoList, ItemComment, Completion } from '../types'
+  import { format, parseISO } from 'date-fns'
   import { computeUrgencyLevel } from '../composables/useUrgency'
 
   const route = useRoute()
@@ -399,6 +437,11 @@
   const completionAmountRef = ref<HTMLInputElement | null>(null)
   const saving = ref(false)
   const saveError = ref('')
+
+  // History modal state
+  const historyItemId = ref<string | null>(null)
+  const historyCompletions = ref<Completion[]>([])
+  const historyLoading = ref(false)
 
   // Comments state
   const commentsOpen = ref<Set<string>>(new Set())
@@ -580,9 +623,8 @@
   function handleComplete(itemId: string) {
     completingItemId.value = itemId
     completionNote.value = ''
-    completionAmount.value = ''
-    // Pre-select the item's currency, or fall back to list default
     const item = itemsStore.getItems(listId).find((i) => i.id === itemId)
+    completionAmount.value = item?.amount ?? ''
     completionCurrency.value = item?.currency ?? list.value?.defaultCurrency ?? ''
     nextTick(() => completionAmountRef.value?.focus())
   }
@@ -597,6 +639,30 @@
     }
     await itemsStore.completeItem(listId, completingItemId.value, opts)
     completingItemId.value = null
+  }
+
+  async function openHistoryModal(itemId: string) {
+    historyItemId.value = itemId
+    historyLoading.value = true
+    try {
+      const comps = await itemsApi.getCompletions(itemId)
+      historyCompletions.value = comps.sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+      )
+    } finally {
+      historyLoading.value = false
+    }
+  }
+
+  async function undoCompletion(completion: Completion) {
+    await itemsApi.deleteCompletion(completion.id)
+    historyCompletions.value = historyCompletions.value.filter((c) => c.id !== completion.id)
+    // Refresh items to update due date if it was reverted
+    await itemsStore.fetchItems(listId)
+  }
+
+  function formatHistoryDate(iso: string) {
+    return format(parseISO(iso), 'dd MMM yyyy HH:mm')
   }
 
   async function handleArchive(itemId: string) {

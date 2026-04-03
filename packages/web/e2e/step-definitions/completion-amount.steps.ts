@@ -45,3 +45,21 @@ Then('the completion note field should be focused', async function (this: TodoWo
   const modal = this.page.locator('.modal')
   await expect(modal.locator('textarea.form-input')).toBeFocused()
 })
+
+Given(
+  'I have an item with amount {string} and currency {string} called {string} in list {string}',
+  async function (this: TodoWorld, amount: string, currency: string, title: string, listTitle: string) {
+    if (!this.lists.has(listTitle)) {
+      await this.createListViaApi(listTitle)
+    }
+    await this.createItemViaApi(listTitle, { title, amount: parseFloat(amount), currency })
+  }
+)
+
+Then(
+  'the completion amount field should contain {string}',
+  async function (this: TodoWorld, expected: string) {
+    const modal = this.page.locator('.modal')
+    await expect(modal.locator('.completion-amount input[type="number"]')).toHaveValue(expected)
+  }
+)
