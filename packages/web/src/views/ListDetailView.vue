@@ -16,6 +16,9 @@
     </div>
 
     <div v-else class="items-list">
+      <div v-if="dueThisMonthCount > 0" class="due-this-month">
+        {{ dueThisMonthCount }} due this month
+      </div>
       <div v-for="item in sortedItems" :key="item.id" class="item-wrapper">
         <TodoItemComponent
           :item="item"
@@ -527,6 +530,11 @@
   )
 
   const items = computed(() => itemsStore.getItems(listId))
+  const dueThisMonthCount = computed(() => {
+    const now = new Date()
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    return items.value.filter((i) => i.dueDate && new Date(i.dueDate) <= monthEnd).length
+  })
   const sortedItems = computed(() =>
     [...items.value].sort((a, b) => {
       const order = { overdue: 0, high: 1, medium: 2, low: 3, none: 4 }
@@ -793,6 +801,16 @@
   .list-desc {
     color: var(--color-text-muted);
     margin-top: 0.25rem;
+  }
+  .due-this-month {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.65rem;
+    border-radius: 99px;
+    background: var(--urgency-high-bg);
+    color: var(--urgency-high-text);
+    margin-bottom: 0.5rem;
   }
   .items-list {
     display: flex;
