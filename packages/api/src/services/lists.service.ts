@@ -36,16 +36,35 @@ export class ListsService {
         )
       )
 
-    // Any completion for these items means the item is done
+    // Check which items have been completed for their CURRENT due date.
+    // Recurring items have many completions; only the one matching the
+    // current dueDate (via dueDateSnapshot) counts.
     const itemIdsDue = itemsDueThisMonthOrBefore.map((i) => i.id)
-    let completedItemIds = new Set<string>()
+    const completedItemIds = new Set<string>()
     /* c8 ignore next */
     if (itemIdsDue.length > 0) {
       const comps = await this.db
         .select()
         .from(completions)
         .where(inArray(completions.itemId, itemIdsDue))
-      completedItemIds = new Set(comps.map((c) => c.itemId))
+
+      // Build a map of item dueDate for comparison
+      const dueDateByItem = new Map(
+        itemsDueThisMonthOrBefore.map((i) => [i.id, i.dueDate?.getTime()])
+      )
+
+      for (const c of comps) {
+        const itemDue = dueDateByItem.get(c.itemId)
+        const snapTime = c.dueDateSnapshot?.getTime()
+        // Match: completion's snapshot matches the item's current due date
+        if (itemDue != null && snapTime != null && snapTime === itemDue) {
+          completedItemIds.add(c.itemId)
+        }
+        // Non-recurring items without a due date: any completion means done
+        if (itemDue == null) {
+          completedItemIds.add(c.itemId)
+        }
+      }
     }
 
     // Upcoming items: due >= now, sorted ASC — take first 3 per list in memory
