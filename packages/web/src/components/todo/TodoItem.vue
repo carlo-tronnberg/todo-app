@@ -158,19 +158,22 @@
   const recurrenceLabel = computed(() => {
     const rule = props.item.recurrenceRule
     if (!rule || rule.type === 'none') return ''
+    const n = rule.interval ?? 1
     switch (rule.type) {
       case 'daily':
-        return 'Daily'
+        return n === 1 ? 'Daily' : `Every ${n} days`
       case 'weekly':
-        return 'Weekly'
+        return n === 1 ? 'Weekly' : `Every ${n} weeks`
       case 'weekly_on_day':
-        return `Every ${weekdayName(rule.weekdayMask)}`
+        return n === 1 ? `Every ${weekdayName(rule.weekdayMask)}` : `Every ${n} weeks`
       case 'monthly_on_day':
-        return `Monthly · day ${rule.dayOfMonth ?? '?'}`
+        return n === 1
+          ? `Monthly on day ${rule.dayOfMonth ?? '?'}`
+          : `Every ${n} months on day ${rule.dayOfMonth ?? '?'}`
       case 'custom_days':
         return `Every ${rule.intervalDays ?? '?'} days`
       case 'yearly':
-        return 'Yearly'
+        return n === 1 ? 'Yearly' : `Every ${n} years`
       default:
         return ''
     }

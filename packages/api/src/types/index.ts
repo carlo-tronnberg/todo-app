@@ -26,5 +26,6 @@ export interface RecurrenceRuleInput {
   dayOfMonth?: number
   intervalDays?: number
   weekdayMask?: number
+  interval?: number // multiplier: every N weeks/months/years (default 1)
   anchorDate?: string // ISO string
 }

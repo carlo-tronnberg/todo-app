@@ -17,6 +17,7 @@ interface BackupRecurrenceRule {
   dayOfMonth: number | null
   intervalDays: number | null
   weekdayMask: number | null
+  interval: number
   anchorDate: string | null
 }
 
@@ -167,6 +168,7 @@ export class BackupService {
                   dayOfMonth: rule.dayOfMonth,
                   intervalDays: rule.intervalDays,
                   weekdayMask: rule.weekdayMask,
+                  interval: rule.interval ?? 1,
                   anchorDate: rule.anchorDate?.toISOString() ?? null,
                 }
               })()
@@ -225,6 +227,7 @@ export class BackupService {
                 dayOfMonth: itemData.recurrenceRule.dayOfMonth ?? null,
                 intervalDays: itemData.recurrenceRule.intervalDays ?? null,
                 weekdayMask: itemData.recurrenceRule.weekdayMask ?? null,
+                interval: itemData.recurrenceRule.interval ?? 1,
                 anchorDate: itemData.recurrenceRule.anchorDate
                   ? new Date(itemData.recurrenceRule.anchorDate)
                   : null,

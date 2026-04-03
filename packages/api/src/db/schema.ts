@@ -62,6 +62,8 @@ export const recurrenceRules = pgTable('recurrence_rules', {
   intervalDays: integer('interval_days'),
   // weekly: bitmask (Sun=1, Mon=2, Tue=4, Wed=8, Thu=16, Fri=32, Sat=64)
   weekdayMask: integer('weekday_mask'),
+  // multiplier for the base period (e.g., 2 = every 2 weeks/months/years)
+  interval: integer('interval').notNull().default(1),
   // anchor date for custom_days calculation
   anchorDate: timestamp('anchor_date', { withTimezone: true }),
 })

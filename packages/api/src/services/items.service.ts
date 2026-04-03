@@ -82,6 +82,7 @@ export class ItemsService {
           dayOfMonth: input.recurrenceRule.dayOfMonth,
           intervalDays: input.recurrenceRule.intervalDays,
           weekdayMask: input.recurrenceRule.weekdayMask,
+          interval: input.recurrenceRule.interval ?? 1,
           anchorDate: parseDateOrNull(input.recurrenceRule.anchorDate),
         })
         .returning()
@@ -150,6 +151,7 @@ export class ItemsService {
             dayOfMonth: input.recurrenceRule.dayOfMonth ?? null,
             intervalDays: input.recurrenceRule.intervalDays ?? null,
             weekdayMask: input.recurrenceRule.weekdayMask ?? null,
+            interval: input.recurrenceRule.interval ?? 1,
             anchorDate: parseDateOrNull(input.recurrenceRule.anchorDate),
           })
           .where(eq(recurrenceRules.id, existing.recurrenceRuleId))
@@ -278,6 +280,7 @@ export class ItemsService {
           dayOfMonth: existing.recurrenceRule.dayOfMonth ?? undefined,
           intervalDays: existing.recurrenceRule.intervalDays ?? undefined,
           weekdayMask: existing.recurrenceRule.weekdayMask ?? undefined,
+          interval: existing.recurrenceRule.interval ?? undefined,
           anchorDate: existing.recurrenceRule.anchorDate?.toISOString() ?? undefined,
         }
       : undefined

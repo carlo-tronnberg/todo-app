@@ -15,6 +15,7 @@ export interface RecurrenceRule {
   dayOfMonth?: number | null
   intervalDays?: number | null
   weekdayMask?: number | null
+  interval?: number | null
   anchorDate?: string | null
 }
 
