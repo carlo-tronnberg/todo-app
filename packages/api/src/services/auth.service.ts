@@ -127,6 +127,47 @@ export class AuthService {
     return updated ?? null
   }
 
+  async findOrCreateByGoogle(profile: { email: string; firstName?: string; lastName?: string }) {
+    const [existing] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, profile.email))
+      .limit(1)
+
+    if (existing) {
+      return {
+        id: existing.id,
+        email: existing.email,
+        username: existing.username,
+        firstName: existing.firstName,
+        lastName: existing.lastName,
+      }
+    }
+
+    // Create new user with a random password (they'll use Google to log in)
+    const username = profile.email.split('@')[0] + '_' + Date.now()
+    const passwordHash = await hashPassword(crypto.randomUUID())
+
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: profile.email,
+        username,
+        passwordHash,
+        firstName: profile.firstName ?? null,
+        lastName: profile.lastName ?? null,
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+
+    return user
+  }
+
   async changePassword(id: string, oldPassword: string, newPassword: string) {
     const [user] = await this.db.select().from(users).where(eq(users.id, id)).limit(1)
     /* c8 ignore next */

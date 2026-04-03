@@ -61,6 +61,16 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+
+  // Handle Google SSO callback: /?token=...
+  const token = to.query.token as string | undefined
+  if (token) {
+    localStorage.setItem('auth_token', token)
+    auth.token = token
+    // Remove token from URL and go to dashboard
+    return { name: 'Dashboard' }
+  }
+
   if (!to.meta.public && !auth.isAuthenticated) {
     return { name: 'Login' }
   }
