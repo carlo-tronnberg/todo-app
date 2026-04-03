@@ -22,36 +22,29 @@ export class ListsService {
 
     const listIds = lists.map((l) => l.id)
     const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 
-    // Items due this month (non-archived) — used for uncompleted count
-    const itemsThisMonth = await this.db
+    // Items due up to end of this month (non-archived) — includes overdue
+    const itemsDueThisMonthOrBefore = await this.db
       .select()
       .from(todoItems)
       .where(
         and(
           inArray(todoItems.listId, listIds),
           eq(todoItems.isArchived, false),
-          gte(todoItems.dueDate, monthStart),
           lte(todoItems.dueDate, monthEnd)
         )
       )
 
-    // Completions recorded this month for those items
-    const itemIdsThisMonth = itemsThisMonth.map((i) => i.id)
+    // Any completion for these items means the item is done
+    const itemIdsDue = itemsDueThisMonthOrBefore.map((i) => i.id)
     let completedItemIds = new Set<string>()
     /* c8 ignore next */
-    if (itemIdsThisMonth.length > 0) {
+    if (itemIdsDue.length > 0) {
       const comps = await this.db
         .select()
         .from(completions)
-        .where(
-          and(
-            inArray(completions.itemId, itemIdsThisMonth),
-            gte(completions.completedAt, monthStart)
-          )
-        )
+        .where(inArray(completions.itemId, itemIdsDue))
       completedItemIds = new Set(comps.map((c) => c.itemId))
     }
 
@@ -75,7 +68,7 @@ export class ListsService {
 
     // Aggregate per list
     const uncompletedByList: Record<string, number> = {}
-    for (const item of itemsThisMonth) {
+    for (const item of itemsDueThisMonthOrBefore) {
       if (!completedItemIds.has(item.id)) {
         uncompletedByList[item.listId] = (uncompletedByList[item.listId] ?? 0) + 1
       }

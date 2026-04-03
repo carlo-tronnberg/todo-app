@@ -530,10 +530,13 @@
   const sortedItems = computed(() =>
     [...items.value].sort((a, b) => {
       const order = { overdue: 0, high: 1, medium: 2, low: 3, none: 4 }
-      return (
-        order[computeUrgencyLevel(a.dueDate)] - order[computeUrgencyLevel(b.dueDate)] ||
-        a.sortOrder - b.sortOrder
-      )
+      const urgencyDiff =
+        order[computeUrgencyLevel(a.dueDate)] - order[computeUrgencyLevel(b.dueDate)]
+      if (urgencyDiff !== 0) return urgencyDiff
+      // Within the same urgency group, sort by due date (closest first)
+      const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+      const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+      return aDate - bDate || a.sortOrder - b.sortOrder
     })
   )
 
