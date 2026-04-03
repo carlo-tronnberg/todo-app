@@ -9,11 +9,14 @@ Given(
   }
 )
 
-Then('the amount field in the completion modal should be focused', async function (this: TodoWorld) {
-  const modal = this.page.locator('.modal')
-  const amountInput = modal.locator('.completion-amount input[type="number"]')
-  await expect(amountInput).toBeFocused()
-})
+Then(
+  'the amount field in the completion modal should be focused',
+  async function (this: TodoWorld) {
+    const modal = this.page.locator('.modal')
+    const amountInput = modal.locator('.completion-amount input[type="number"]')
+    await expect(amountInput).toBeFocused()
+  }
+)
 
 Then(
   'the currency select in the completion modal should show {string}',
@@ -24,17 +27,17 @@ Then(
   }
 )
 
-When(
-  'I enter the completion amount {string}',
-  async function (this: TodoWorld, amount: string) {
-    const modal = this.page.locator('.modal')
-    await modal.locator('.completion-amount input[type="number"]').fill(amount)
+When('I enter the completion amount {string}', async function (this: TodoWorld, amount: string) {
+  const modal = this.page.locator('.modal')
+  await modal.locator('.completion-amount input[type="number"]').fill(amount)
+})
+
+Then(
+  '{string} should still appear in the items list',
+  async function (this: TodoWorld, title: string) {
+    await expect(this.page.locator(`.todo-title:has-text("${title}")`)).toBeVisible()
   }
 )
-
-Then('{string} should still appear in the items list', async function (this: TodoWorld, title: string) {
-  await expect(this.page.locator(`.todo-title:has-text("${title}")`)).toBeVisible()
-})
 
 When('I press Tab in the completion amount field', async function (this: TodoWorld) {
   const modal = this.page.locator('.modal')
@@ -48,7 +51,13 @@ Then('the completion note field should be focused', async function (this: TodoWo
 
 Given(
   'I have an item with amount {string} and currency {string} called {string} in list {string}',
-  async function (this: TodoWorld, amount: string, currency: string, title: string, listTitle: string) {
+  async function (
+    this: TodoWorld,
+    amount: string,
+    currency: string,
+    title: string,
+    listTitle: string
+  ) {
     if (!this.lists.has(listTitle)) {
       await this.createListViaApi(listTitle)
     }
