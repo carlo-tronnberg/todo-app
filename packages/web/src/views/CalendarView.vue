@@ -124,7 +124,11 @@
     <div v-if="unscheduledLists.length > 0" id="unscheduled" class="unscheduled-section">
       <h3 class="unscheduled-heading">Unscheduled Items</h3>
       <div v-for="group in unscheduledLists" :key="group.listId" class="unscheduled-group">
-        <div class="unscheduled-list-title">{{ group.listTitle }}</div>
+        <router-link
+          class="unscheduled-list-title unscheduled-list-link"
+          :to="`/lists/${group.listId}`"
+          >{{ group.listTitle }}</router-link
+        >
         <div
           v-for="item in group.items"
           :key="item.id"
@@ -1598,6 +1602,12 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 0.35rem;
+  }
+  .unscheduled-list-link {
+    text-decoration: none;
+  }
+  .unscheduled-list-link:hover {
+    color: var(--color-text);
   }
   .unscheduled-item {
     padding: 0.35rem 0.6rem;

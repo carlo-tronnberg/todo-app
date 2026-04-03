@@ -1,7 +1,8 @@
-version: '3.9'
+name: todo-app-dev
 
 services:
   postgres:
+    container_name: todo-postgres
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: todo_dev
@@ -18,6 +19,7 @@ services:
       retries: 5
 
   api:
+    container_name: todo-api
     build:
       context: ..
       dockerfile: docker/api/Dockerfile
@@ -38,6 +40,7 @@ services:
         condition: service_healthy
 
   web:
+    container_name: todo-web
     image: node:20-alpine
     working_dir: /app
     command: sh -c "HUSKY=0 npm ci --workspace=packages/web && npm run dev --workspace=packages/web -- --host 0.0.0.0"

@@ -1,5 +1,13 @@
 import { inArray, eq } from 'drizzle-orm'
-import { Database, todoLists, todoItems, recurrenceRules, completions, itemComments } from '../db'
+import {
+  Database,
+  todoLists,
+  todoItems,
+  recurrenceRules,
+  completions,
+  itemComments,
+  auditLogs,
+} from '../db'
 import type { RecurrenceType } from '../types'
 
 // ── Backup format (version 1) ─────────────────────────────────────────────────
@@ -49,10 +57,19 @@ interface BackupList {
   items: BackupItem[]
 }
 
+interface BackupAuditLog {
+  action: string
+  entityType: string
+  entityId: string
+  summary: string | null
+  createdAt: string
+}
+
 export interface BackupData {
   version: 1
   exportedAt: string
   lists: BackupList[]
+  auditLogs?: BackupAuditLog[]
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -61,10 +78,24 @@ export class BackupService {
   constructor(private db: Database) {}
 
   async export(userId: string): Promise<BackupData> {
-    const lists = await this.db.select().from(todoLists).where(eq(todoLists.userId, userId))
+    const [lists, logs] = await Promise.all([
+      this.db.select().from(todoLists).where(eq(todoLists.userId, userId)),
+      this.db.select().from(auditLogs).where(eq(auditLogs.userId, userId)),
+    ])
 
     if (lists.length === 0) {
-      return { version: 1, exportedAt: new Date().toISOString(), lists: [] }
+      return {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        lists: [],
+        auditLogs: logs.map((l) => ({
+          action: l.action,
+          entityType: l.entityType,
+          entityId: l.entityId,
+          summary: l.summary,
+          createdAt: l.createdAt.toISOString(),
+        })),
+      }
     }
 
     const listIds = lists.map((l) => l.id)
@@ -152,6 +183,13 @@ export class BackupService {
             createdAt: c.createdAt.toISOString(),
           })),
         })),
+      })),
+      auditLogs: logs.map((l) => ({
+        action: l.action,
+        entityType: l.entityType,
+        entityId: l.entityId,
+        summary: l.summary,
+        createdAt: l.createdAt.toISOString(),
       })),
     }
   }
@@ -241,6 +279,19 @@ export class BackupService {
             )
           }
         }
+      }
+
+      if (data.auditLogs?.length) {
+        await tx.insert(auditLogs).values(
+          data.auditLogs.map((l) => ({
+            userId,
+            action: l.action,
+            entityType: l.entityType,
+            entityId: l.entityId,
+            summary: l.summary ?? null,
+            createdAt: new Date(l.createdAt),
+          }))
+        )
       }
     })
 
