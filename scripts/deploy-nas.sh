@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy to Asustor NAS via Portainer Docker API.
+# Deploy to Asustor NAS via Portainer API (image pull) + SSH (compose up).
 #
-# Pulls the latest images and restarts the app containers. Containers are
-# NOT recreated — Docker Compose manages the network, volumes, and config,
-# so we only pull + stop + remove + let Compose bring them back up.
-#
-# Requires: curl, jq
+# Requires: curl, jq, ssh
 #
 # Required env vars (set in .env.nas or export before running):
 #   PORTAINER_URL       - Portainer base URL (e.g., https://84.216.62.66:19943)
-#   PORTAINER_API_KEY   - Portainer API key (generate in Portainer → My account → Access tokens)
+#   PORTAINER_API_KEY   - Portainer API key
 #   PORTAINER_ENDPOINT  - Portainer environment/endpoint ID (default: 2)
 #   COMPOSE_PROJECT     - Docker Compose project name (default: todo-app)
+#   NAS_SSH             - SSH connection string (e.g., root@84.216.62.66)
+#   NAS_COMPOSE_DIR     - Path to docker compose dir on NAS (e.g., /volume1/home/carlo/todo-app/docker)
 #
 # Usage:
 #   npm run deploy:nas
@@ -29,14 +27,17 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 PORTAINER_URL="${PORTAINER_URL:?Set PORTAINER_URL (e.g., https://84.216.62.66:19943)}"
-PORTAINER_API_KEY="${PORTAINER_API_KEY:?Set PORTAINER_API_KEY (generate in Portainer → My account → Access tokens)}"
+PORTAINER_API_KEY="${PORTAINER_API_KEY:?Set PORTAINER_API_KEY}"
 PORTAINER_ENDPOINT="${PORTAINER_ENDPOINT:-2}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT:-todo-app}"
+NAS_SSH="${NAS_SSH:?Set NAS_SSH (e.g., root@84.216.62.66)}"
+NAS_COMPOSE_DIR="${NAS_COMPOSE_DIR:?Set NAS_COMPOSE_DIR (e.g., /volume1/home/carlo/todo-app/docker)}"
 
 DOCKER="${PORTAINER_URL}/api/endpoints/${PORTAINER_ENDPOINT}/docker"
 AUTH="X-API-Key: ${PORTAINER_API_KEY}"
 
-# Find containers belonging to the compose project
+# ── Step 1: Find containers ──────────────────────────────────────────────────
+
 echo "→ Finding containers for project '${COMPOSE_PROJECT}'..."
 CONTAINERS_JSON=$(curl -sk -H "$AUTH" \
   "${DOCKER}/containers/json?all=true&filters=%7B%22label%22%3A%5B%22com.docker.compose.project%3D${COMPOSE_PROJECT}%22%5D%7D")
@@ -53,7 +54,8 @@ fi
 echo "  Found ${CONTAINER_COUNT} container(s):"
 echo "$CONTAINERS_JSON" | jq -r '.[] | "    \(.Names[0] | ltrimstr("/")) → \(.Image) (\(.State))"'
 
-# Pull latest images (skip postgres — it's not built by us)
+# ── Step 2: Pull latest images via Portainer API ─────────────────────────────
+
 echo "→ Pulling latest images..."
 IMAGES=$(echo "$CONTAINERS_JSON" | jq -r '.[].Image' | grep -v postgres | sort -u)
 
@@ -68,33 +70,11 @@ for IMAGE in $IMAGES; do
     -o /dev/null
 done
 
-# Restart app containers (not postgres) so they pick up the new images.
-# A simple restart doesn't load a new image — we need stop + remove + start
-# via docker-compose. Since we can't run compose remotely, we restart which
-# is safe: the container keeps its network/volume config and the image is
-# already pulled.
-#
-# For a full image swap, use Portainer UI "Recreate" or SSH + docker compose up -d.
-echo "→ Restarting app containers..."
-for ROW in $(echo "$CONTAINERS_JSON" | jq -r '.[] | @base64'); do
-  _jq() { echo "$ROW" | base64 --decode | jq -r "$1"; }
+# ── Step 3: Recreate containers via SSH + docker compose ─────────────────────
 
-  CID=$(_jq '.Id')
-  NAME=$(_jq '.Names[0]' | sed 's/^\///')
-  IMAGE=$(_jq '.Image')
-
-  if echo "$IMAGE" | grep -q postgres; then
-    echo "  Skipping ${NAME} (database)"
-    continue
-  fi
-
-  echo "  Restarting ${NAME}..."
-  curl -sk -X POST -H "$AUTH" "${DOCKER}/containers/${CID}/restart?t=10" -o /dev/null
-  echo "    ✓ ${NAME} restarted"
-done
+echo "→ Recreating containers via SSH (${NAS_SSH})..."
+ssh -o StrictHostKeyChecking=accept-new "${NAS_SSH}" \
+  "cd ${NAS_COMPOSE_DIR} && docker compose -f docker-compose.prod.yml up -d" 2>&1 \
+  | sed 's/^/  /'
 
 echo "✓ Deploy complete"
-echo ""
-echo "Note: Containers were restarted but still use their existing image layer."
-echo "To load the newly pulled images, use Portainer UI → stack → 'Recreate'"
-echo "or SSH into the NAS and run: cd /path/to/stack && docker compose up -d"
