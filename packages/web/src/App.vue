@@ -16,7 +16,9 @@
             class="nav-username"
             :title="auth.user?.firstName || auth.user?.username"
           >
-            <span class="hide-mobile">{{ auth.user?.firstName || auth.user?.username }}</span>
+            <span class="hide-mobile">{{
+              auth.user?.firstName || auth.user?.username || 'Profile'
+            }}</span>
             <span class="show-mobile" aria-hidden="true">👤</span>
           </router-link>
 

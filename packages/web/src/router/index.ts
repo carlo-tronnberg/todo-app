@@ -72,6 +72,7 @@ router.beforeEach((to) => {
   if (token) {
     localStorage.setItem('auth_token', token)
     auth.token = token
+    auth.fetchMe()
     // Remove token from URL and go to dashboard
     return { name: 'Dashboard' }
   }
