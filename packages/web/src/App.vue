@@ -20,6 +20,8 @@
             <span class="show-mobile" aria-hidden="true">👤</span>
           </router-link>
 
+          <router-link to="/settings" class="btn-icon" title="Settings">⚙</router-link>
+
           <!-- Dark mode toggle -->
           <button
             class="btn-icon"

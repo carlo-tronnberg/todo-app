@@ -12,7 +12,7 @@
     </div>
 
     <div v-else class="lists-grid">
-      <div v-for="list in listsStore.lists" :key="list.id" class="list-card card">
+      <div v-for="list in sortedLists" :key="list.id" class="list-card card">
         <!-- Clickable body navigates to the list -->
         <div class="list-card-body" @click="$router.push(`/lists/${list.id}`)">
           <h2 class="list-title">{{ list.title }}</h2>
@@ -155,12 +155,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, nextTick, onMounted } from 'vue'
+  import { ref, computed, nextTick, onMounted } from 'vue'
   import { format } from 'date-fns'
   import { useListsStore } from '../stores/lists.store'
   import type { TodoList } from '../types'
 
   const listsStore = useListsStore()
+
+  const sortedLists = computed(() =>
+    [...listsStore.lists].sort((a, b) => a.title.localeCompare(b.title))
+  )
 
   // ── Modal state ─────────────────────────────────────────────────────────────
   const showCreateModal = ref(false)

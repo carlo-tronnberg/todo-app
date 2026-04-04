@@ -49,39 +49,6 @@
       </form>
     </section>
 
-    <!-- Backup / Restore -->
-    <section class="card profile-section">
-      <h2>Backup &amp; Restore</h2>
-      <p class="section-hint">
-        Download all your lists, items, completions and comments as a JSON file. You can restore it
-        here to migrate to a new database or recover data.
-      </p>
-
-      <div class="backup-actions">
-        <button class="btn btn-secondary" :disabled="backupBusy" @click="downloadBackup">
-          {{ backupBusy ? 'Preparing…' : '⬇ Download backup' }}
-        </button>
-
-        <label class="btn btn-secondary restore-label">
-          {{ restoreBusy ? 'Restoring…' : '⬆ Restore from file' }}
-          <input
-            type="file"
-            accept=".json,application/json"
-            class="restore-file-input"
-            :disabled="restoreBusy"
-            @change="handleRestoreFile"
-          />
-        </label>
-      </div>
-
-      <div v-if="backupError" class="alert alert-error">{{ backupError }}</div>
-      <div v-if="restoreResult" class="alert alert-success">
-        Restored {{ restoreResult.lists }} list(s) and {{ restoreResult.items }} item(s).
-        <router-link to="/">Go to lists</router-link>
-      </div>
-      <div v-if="restoreError" class="alert alert-error">{{ restoreError }}</div>
-    </section>
-
     <!-- Change password form -->
     <section class="card profile-section">
       <h2>Change password</h2>
@@ -127,7 +94,6 @@
   import { reactive, ref, onMounted } from 'vue'
   import { useAuthStore } from '../stores/auth.store'
   import { authApi } from '../api/auth.api'
-  import { backupApi } from '../api/backup.api'
 
   const auth = useAuthStore()
 
@@ -141,44 +107,6 @@
   const profileSaving = ref(false)
   const profileSuccess = ref(false)
   const profileError = ref('')
-
-  const backupBusy = ref(false)
-  const backupError = ref('')
-  const restoreBusy = ref(false)
-  const restoreResult = ref<{ lists: number; items: number } | null>(null)
-  const restoreError = ref('')
-
-  async function downloadBackup() {
-    backupError.value = ''
-    backupBusy.value = true
-    try {
-      await backupApi.download()
-    } catch {
-      backupError.value = 'Failed to download backup.'
-    } finally {
-      backupBusy.value = false
-    }
-  }
-
-  async function handleRestoreFile(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0]
-    if (!file) return
-    restoreError.value = ''
-    restoreResult.value = null
-    restoreBusy.value = true
-    try {
-      const text = await file.text()
-      const data = JSON.parse(text)
-      restoreResult.value = await backupApi.restore(data)
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } }; message?: string })
-        ?.response?.data?.message
-      restoreError.value = msg ?? 'Failed to restore backup. Make sure the file is a valid backup.'
-    } finally {
-      restoreBusy.value = false
-      ;(event.target as HTMLInputElement).value = ''
-    }
-  }
 
   const pwForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
   const pwSaving = ref(false)
@@ -281,29 +209,6 @@
   .form-input:disabled {
     opacity: 0.55;
     cursor: not-allowed;
-  }
-  .section-hint {
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    margin-bottom: 1rem;
-    line-height: 1.5;
-  }
-  .backup-actions {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.75rem;
-  }
-  .restore-label {
-    cursor: pointer;
-    position: relative;
-  }
-  .restore-file-input {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
   }
   .alert {
     padding: 0.45rem 0.75rem;
