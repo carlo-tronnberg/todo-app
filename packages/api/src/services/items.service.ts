@@ -15,6 +15,7 @@ export interface CreateItemInput {
   endTime?: string
   amount?: string
   currency?: string
+  url?: string
   colorOverride?: string
   sortOrder?: number
   recurrenceRule?: RecurrenceRuleInput
@@ -29,6 +30,7 @@ export interface UpdateItemInput {
   endTime?: string | null
   amount?: string | null
   currency?: string | null
+  url?: string | null
   colorOverride?: string | null
   sortOrder?: number
   recurrenceRule?: RecurrenceRuleInput | null
@@ -116,6 +118,7 @@ export class ItemsService {
         dueDate: resolvedDueDate,
         amount: input.amount,
         currency: input.currency,
+        url: input.url,
         colorOverride: input.colorOverride,
         sortOrder: input.sortOrder ?? 0,
       })
@@ -204,6 +207,7 @@ export class ItemsService {
     if (input.endTime !== undefined) updateData.endTime = input.endTime ?? null
     if (input.amount !== undefined) updateData.amount = input.amount ?? null
     if (input.currency !== undefined) updateData.currency = input.currency ?? null
+    if (input.url !== undefined) updateData.url = input.url ?? null
     if (input.colorOverride !== undefined) updateData.colorOverride = input.colorOverride ?? null
     if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder
     if (input.listId !== undefined) {
@@ -294,6 +298,7 @@ export class ItemsService {
       endTime: existing.endTime ?? undefined,
       amount: existing.amount != null ? String(existing.amount) : undefined,
       currency: existing.currency ?? undefined,
+      url: existing.url ?? undefined,
       colorOverride: existing.colorOverride ?? undefined,
       sortOrder: existing.sortOrder,
       recurrenceRule,
