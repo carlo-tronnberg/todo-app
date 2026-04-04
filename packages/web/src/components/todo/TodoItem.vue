@@ -43,6 +43,17 @@
 
     <!-- Actions -->
     <div class="todo-item-actions">
+      <a
+        v-if="item.url"
+        :href="item.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="icon-btn url-link"
+        title="Open link"
+        @click.stop
+      >
+        🔗
+      </a>
       <button
         class="icon-btn"
         title="View completion history"

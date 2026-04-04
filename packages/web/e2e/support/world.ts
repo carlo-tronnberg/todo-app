@@ -132,6 +132,7 @@ export class TodoWorld extends World {
       recurrenceRule?: { type: string; dayOfMonth?: number; intervalDays?: number }
       amount?: number
       currency?: string
+      url?: string
     }
   ) {
     const list = this.lists.get(listTitle)

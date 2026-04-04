@@ -43,6 +43,7 @@ interface BackupItem {
   dueDate: string | null
   amount: string | null
   currency: string | null
+  url: string | null
   colorOverride: string | null
   isArchived: boolean
   sortOrder: number
@@ -156,6 +157,7 @@ export class BackupService {
           dueDate: item.dueDate?.toISOString() ?? null,
           amount: item.amount,
           currency: item.currency,
+          url: item.url,
           colorOverride: item.colorOverride,
           isArchived: item.isArchived,
           sortOrder: item.sortOrder,
@@ -249,6 +251,7 @@ export class BackupService {
               dueDate: itemData.dueDate ? new Date(itemData.dueDate) : null,
               amount: itemData.amount ?? null,
               currency: itemData.currency ?? null,
+              url: itemData.url ?? null,
               colorOverride: itemData.colorOverride ?? null,
               isArchived: itemData.isArchived ?? false,
               sortOrder: itemData.sortOrder ?? 0,

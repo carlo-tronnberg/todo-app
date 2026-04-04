@@ -80,6 +80,11 @@
             <textarea v-model="form.description" class="form-input" rows="2" />
           </div>
 
+          <div class="form-group">
+            <label class="form-label">URL</label>
+            <input v-model="form.url" type="url" class="form-input" placeholder="https://..." />
+          </div>
+
           <!-- Start date | Start time -->
           <div class="form-row">
             <div class="form-col">
@@ -404,6 +409,7 @@
   const BLANK_FORM = () => ({
     title: '',
     description: '',
+    url: '',
     startDate: '',
     startTime: '',
     endTime: '',
@@ -516,6 +522,7 @@
     form.value = {
       title: item.title,
       description: item.description ?? '',
+      url: item.url ?? '',
       startDate: item.startDate ? item.startDate.substring(0, 10) : '',
       startTime: item.startTime ?? '',
       endTime: item.endTime ?? '',
@@ -540,6 +547,7 @@
     form.value = {
       title: `Copy of ${item.title}`,
       description: item.description ?? '',
+      url: item.url ?? '',
       startDate: item.startDate ? item.startDate.substring(0, 10) : '',
       startTime: item.startTime ?? '',
       endTime: item.endTime ?? '',
@@ -614,6 +622,7 @@
         title: form.value.title,
         // null clears the field; undefined leaves it unchanged (for new items: omit)
         description: isEdit ? form.value.description || null : form.value.description || undefined,
+        url: isEdit ? form.value.url || null : form.value.url || undefined,
         dueDate: isEdit
           ? form.value.dueDate
             ? new Date(form.value.dueDate).toISOString()

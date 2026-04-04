@@ -53,6 +53,7 @@ export interface TodoItem {
   dueDate?: string | null
   amount?: string | null
   currency?: string | null
+  url?: string | null
   colorOverride?: string | null
   isArchived: boolean
   sortOrder: number
