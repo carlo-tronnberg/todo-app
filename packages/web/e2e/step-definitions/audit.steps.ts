@@ -27,10 +27,6 @@ Then(
   }
 )
 
-Then('I should see the {string} button', async function (this: TodoWorld, label: string) {
-  await expect(this.page.locator(`button:has-text("${label}")`)).toBeVisible()
-})
-
 Then('I should see more audit entries', async function (this: TodoWorld) {
   const rows = this.page.locator('tbody tr')
   expect(await rows.count()).toBeGreaterThan(100)

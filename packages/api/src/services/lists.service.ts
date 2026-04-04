@@ -36,38 +36,58 @@ export class ListsService {
         )
       )
 
-    // Check which items have been completed for their CURRENT due date.
-    // Recurring items have many completions; only the one matching the
-    // current dueDate (via dueDateSnapshot) counts.
-    const itemIdsDue = itemsDueThisMonthOrBefore.map((i) => i.id)
-    const completedItemIds = new Set<string>()
-    /* c8 ignore next */
-    if (itemIdsDue.length > 0) {
-      const comps = await this.db
-        .select()
-        .from(completions)
-        .where(inArray(completions.itemId, itemIdsDue))
+    const completedItemIds = await this.getCompletedItemIds(itemsDueThisMonthOrBefore)
+    const upcomingByList = await this.getUpcomingByList(listIds, now)
 
-      // Build a map of item dueDate for comparison
-      const dueDateByItem = new Map(
-        itemsDueThisMonthOrBefore.map((i) => [i.id, i.dueDate?.getTime()])
-      )
-
-      for (const c of comps) {
-        const itemDue = dueDateByItem.get(c.itemId)
-        const snapTime = c.dueDateSnapshot?.getTime()
-        // Match: completion's snapshot matches the item's current due date
-        if (itemDue != null && snapTime != null && snapTime === itemDue) {
-          completedItemIds.add(c.itemId)
-        }
-        // Non-recurring items without a due date: any completion means done
-        if (itemDue == null) {
-          completedItemIds.add(c.itemId)
-        }
+    const uncompletedByList: Record<string, number> = {}
+    for (const item of itemsDueThisMonthOrBefore) {
+      if (!completedItemIds.has(item.id)) {
+        uncompletedByList[item.listId] = (uncompletedByList[item.listId] ?? 0) + 1
       }
     }
 
-    // Upcoming items: due >= now, sorted ASC — take first 3 per list in memory
+    return lists.map((list) => ({
+      ...list,
+      uncompletedThisMonth: uncompletedByList[list.id] ?? 0,
+      upcomingItems: upcomingByList[list.id] ?? [],
+    }))
+  }
+
+  /**
+   * Determine which items have been completed for their current due-date cycle.
+   * For recurring items, only a completion whose dueDateSnapshot matches the
+   * item's current dueDate counts.
+   */
+  private async getCompletedItemIds(
+    items: { id: string; dueDate: Date | null }[]
+  ): Promise<Set<string>> {
+    const ids = items.map((i) => i.id)
+    const result = new Set<string>()
+    /* c8 ignore next */
+    if (ids.length === 0) return result
+
+    const comps = await this.db.select().from(completions).where(inArray(completions.itemId, ids))
+
+    const dueDateByItem = new Map(items.map((i) => [i.id, i.dueDate?.getTime()]))
+
+    for (const c of comps) {
+      const itemDue = dueDateByItem.get(c.itemId)
+      const snapTime = c.dueDateSnapshot?.getTime()
+      if (itemDue != null && snapTime != null && snapTime === itemDue) {
+        result.add(c.itemId)
+      }
+      if (itemDue == null) {
+        result.add(c.itemId)
+      }
+    }
+    return result
+  }
+
+  /** Get up to 3 upcoming items per list, sorted by due date. */
+  private async getUpcomingByList(
+    listIds: string[],
+    now: Date
+  ): Promise<Record<string, { id: string; title: string; dueDate: string }[]>> {
     const upcomingAll = await this.db
       .select({
         id: todoItems.id,
@@ -85,32 +105,19 @@ export class ListsService {
       )
       .orderBy(todoItems.dueDate)
 
-    // Aggregate per list
-    const uncompletedByList: Record<string, number> = {}
-    for (const item of itemsDueThisMonthOrBefore) {
-      if (!completedItemIds.has(item.id)) {
-        uncompletedByList[item.listId] = (uncompletedByList[item.listId] ?? 0) + 1
-      }
-    }
-
-    const upcomingByList: Record<string, { id: string; title: string; dueDate: string }[]> = {}
+    const result: Record<string, { id: string; title: string; dueDate: string }[]> = {}
     for (const item of upcomingAll) {
       /* c8 ignore next */
-      if (!upcomingByList[item.listId]) upcomingByList[item.listId] = []
-      if (upcomingByList[item.listId].length < 3) {
-        upcomingByList[item.listId].push({
+      if (!result[item.listId]) result[item.listId] = []
+      if (result[item.listId].length < 3) {
+        result[item.listId].push({
           id: item.id,
           title: item.title,
           dueDate: item.dueDate!.toISOString(),
         })
       }
     }
-
-    return lists.map((list) => ({
-      ...list,
-      uncompletedThisMonth: uncompletedByList[list.id] ?? 0,
-      upcomingItems: upcomingByList[list.id] ?? [],
-    }))
+    return result
   }
 
   async findById(id: string, userId: string) {
