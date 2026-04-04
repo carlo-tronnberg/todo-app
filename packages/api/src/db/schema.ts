@@ -90,6 +90,7 @@ export const todoItems = pgTable('todo_items', {
   amount: numeric('amount', { precision: 12, scale: 2 }),
   currency: varchar('currency', { length: 3 }),
   // Optional user-pinned color override (hex, e.g. #3b82f6)
+  url: text('url'),
   colorOverride: varchar('color_override', { length: 7 }),
   isArchived: boolean('is_archived').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
