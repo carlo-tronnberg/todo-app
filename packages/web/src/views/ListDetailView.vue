@@ -29,47 +29,14 @@
           @history="openHistoryModal"
         />
 
-        <!-- Collapsible comments section -->
-        <div class="comments-bar">
-          <button class="comments-toggle" @click="toggleComments(item.id)">
-            {{
-              commentsOpen.has(item.id)
-                ? '▲ Hide comments'
-                : `▼ Comments${commentsByItem[item.id] ? ` (${commentsByItem[item.id].length})` : ''}`
-            }}
-          </button>
-        </div>
-
-        <div v-if="commentsOpen.has(item.id)" class="comments-section">
-          <div v-if="commentsLoading.has(item.id)" class="comments-loading">Loading…</div>
-          <template v-else>
-            <div v-if="!commentsByItem[item.id]?.length" class="comments-empty">
-              No comments yet.
-            </div>
-            <div v-for="c in commentsByItem[item.id]" :key="c.id" class="comment-row">
-              <p class="comment-content">{{ c.content }}</p>
-              <div class="comment-meta">
-                <span>{{ formatCommentDate(c.createdAt) }}</span>
-                <button
-                  class="comment-delete"
-                  title="Delete comment"
-                  @click="deleteComment(item.id, c.id)"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <form class="comment-form" @submit.prevent="addComment(item.id)">
-              <input
-                v-model="newCommentText[item.id]"
-                type="text"
-                class="form-input comment-input"
-                placeholder="Add a comment…"
-              />
-              <button type="submit" class="btn btn-secondary btn-sm">Add</button>
-            </form>
-          </template>
-        </div>
+        <CommentsSection
+          :comments="commentsByItem[item.id] ?? []"
+          :loading="commentsLoading.has(item.id)"
+          :is-open="commentsOpen.has(item.id)"
+          @toggle="toggleComments(item.id)"
+          @add="addComment(item.id, $event)"
+          @delete="deleteComment(item.id, $event)"
+        />
       </div>
     </div>
 
@@ -268,93 +235,27 @@
       </div>
     </div>
 
-    <!-- Complete confirmation modal -->
-    <div v-if="completingItemId" class="modal-backdrop">
-      <div class="modal card" role="dialog" aria-modal="true" aria-label="Complete Item">
-        <h2>Complete Item</h2>
-        <div class="form-group completion-amount">
-          <label class="form-label">Amount</label>
-          <div class="form-row">
-            <input
-              ref="completionAmountRef"
-              v-model="completionAmount"
-              type="number"
-              step="0.01"
-              min="0"
-              class="form-input"
-              placeholder="0.00"
-              @keydown.enter.prevent="confirmComplete"
-            />
-            <select v-model="completionCurrency" class="form-input" style="max-width: 6rem">
-              <option value="">—</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="SEK">SEK</option>
-              <option value="DKK">DKK</option>
-              <option value="HUF">HUF</option>
-            </select>
-          </div>
-        </div>
-        <p style="margin-bottom: 0.5rem; color: #64748b">
-          Add an optional note for this completion:
-        </p>
-        <div class="form-group">
-          <textarea
-            v-model="completionNote"
-            class="form-input"
-            rows="3"
-            placeholder="Note (optional)"
-            @keydown.enter.prevent="confirmComplete"
-          />
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-secondary" @click="completingItemId = null">Cancel</button>
-          <button class="btn btn-primary" @click="confirmComplete">Complete</button>
-        </div>
-      </div>
-    </div>
+    <CompletionModal
+      v-if="completingItemId"
+      v-model:amount="completionAmount"
+      v-model:currency="completionCurrency"
+      v-model:note="completionNote"
+      @confirm="confirmComplete"
+      @cancel="completingItemId = null"
+    />
 
-    <!-- History modal -->
-    <div v-if="historyItemId" class="modal-backdrop">
-      <div
-        class="modal card history-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Completion History"
-      >
-        <h2>Completion History</h2>
-        <div v-if="historyLoading" class="loading">Loading…</div>
-        <div v-else-if="historyCompletions.length === 0" class="empty-state">
-          <p>No completions recorded yet.</p>
-        </div>
-        <div v-else class="history-list">
-          <div v-for="c in historyCompletions" :key="c.id" class="history-entry">
-            <div class="history-when">
-              <strong>Completed:</strong> {{ formatHistoryDate(c.completedAt) }}
-            </div>
-            <div v-if="c.dueDateSnapshot" class="history-due">
-              <strong>Was due:</strong>
-              {{ formatHistoryDate(c.dueDateSnapshot).split(' ').slice(0, 3).join(' ') }}
-            </div>
-            <div v-if="c.amount" class="history-amount">
-              <strong>Amount:</strong> {{ c.amount }} {{ c.currency }}
-            </div>
-            <div v-if="c.note" class="history-note">{{ c.note }}</div>
-            <div class="history-actions">
-              <button class="btn btn-secondary btn-sm" @click="undoCompletion(c)">Undo</button>
-            </div>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-secondary" @click="historyItemId = null">Close</button>
-        </div>
-      </div>
-    </div>
+    <HistoryModal
+      v-if="historyItemId"
+      :completions="historyCompletions"
+      :loading="historyLoading"
+      @undo="undoCompletion"
+      @close="historyItemId = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch, nextTick } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
 
   const WEEKDAYS = [
     { bit: 2, label: 'Mon' },
@@ -435,8 +336,10 @@
   import { useItemsStore } from '../stores/items.store'
   import { useListsStore } from '../stores/lists.store'
   import TodoItemComponent from '../components/todo/TodoItem.vue'
+  import CompletionModal from '../components/CompletionModal.vue'
+  import HistoryModal from '../components/HistoryModal.vue'
+  import CommentsSection from '../components/CommentsSection.vue'
   import type { TodoItem, TodoList, ItemComment, Completion } from '../types'
-  import { format, parseISO } from 'date-fns'
   import { computeUrgencyLevel } from '../composables/useUrgency'
 
   const route = useRoute()
@@ -458,7 +361,6 @@
   const completionNote = ref('')
   const completionAmount = ref('')
   const completionCurrency = ref('')
-  const completionAmountRef = ref<HTMLInputElement | null>(null)
   const saving = ref(false)
   const saveError = ref('')
 
@@ -471,7 +373,6 @@
   const commentsOpen = ref<Set<string>>(new Set())
   const commentsLoading = ref<Set<string>>(new Set())
   const commentsByItem = ref<Record<string, ItemComment[]>>({})
-  const newCommentText = ref<Record<string, string>>({})
 
   async function toggleComments(itemId: string) {
     if (commentsOpen.value.has(itemId)) {
@@ -488,12 +389,9 @@
     }
   }
 
-  async function addComment(itemId: string) {
-    const text = (newCommentText.value[itemId] ?? '').trim()
-    if (!text) return
+  async function addComment(itemId: string, text: string) {
     const comment = await itemsApi.addComment(itemId, text)
     commentsByItem.value[itemId] = [...(commentsByItem.value[itemId] ?? []), comment]
-    newCommentText.value[itemId] = ''
   }
 
   async function deleteComment(itemId: string, commentId: string) {
@@ -501,10 +399,6 @@
     commentsByItem.value[itemId] = (commentsByItem.value[itemId] ?? []).filter(
       (c) => c.id !== commentId
     )
-  }
-
-  function formatCommentDate(iso: string) {
-    return format(parseISO(iso), 'dd MMM yyyy HH:mm')
   }
 
   const BLANK_FORM = () => ({
@@ -671,7 +565,6 @@
     const item = itemsStore.getItems(listId).find((i) => i.id === itemId)
     completionAmount.value = item?.amount ?? ''
     completionCurrency.value = item?.currency ?? list.value?.defaultCurrency ?? ''
-    nextTick(() => completionAmountRef.value?.focus())
   }
 
   async function confirmComplete() {
@@ -704,10 +597,6 @@
     historyCompletions.value = historyCompletions.value.filter((c) => c.id !== completion.id)
     // Refresh items to update due date if it was reverted
     await itemsStore.fetchItems(listId)
-  }
-
-  function formatHistoryDate(iso: string) {
-    return format(parseISO(iso), 'dd MMM yyyy HH:mm')
   }
 
   async function handleArchive(itemId: string) {
@@ -950,80 +839,8 @@
     cursor: pointer;
   }
 
-  /* Comments */
   .item-wrapper {
     display: flex;
     flex-direction: column;
-  }
-  .comments-bar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0.1rem 0.5rem 0;
-  }
-  .comments-toggle {
-    background: none;
-    border: none;
-    font-size: 0.72rem;
-    color: var(--color-text-faint);
-    cursor: pointer;
-    padding: 0.15rem 0.3rem;
-  }
-  .comments-toggle:hover {
-    color: var(--color-text-muted);
-  }
-  .comments-section {
-    background: var(--color-surface-sunken);
-    border-radius: 0 0 8px 8px;
-    padding: 0.6rem 0.85rem 0.75rem;
-    border: 1px solid var(--color-border);
-    border-top: none;
-    font-size: 0.85rem;
-  }
-  .comments-loading,
-  .comments-empty {
-    color: var(--color-text-faint);
-    font-size: 0.82rem;
-    padding: 0.25rem 0;
-  }
-  .comment-row {
-    padding: 0.3rem 0;
-    border-bottom: 1px solid var(--color-border);
-  }
-  .comment-row:last-of-type {
-    border-bottom: none;
-  }
-  .comment-content {
-    margin: 0;
-    color: var(--color-text);
-    word-break: break-word;
-  }
-  .comment-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.75rem;
-    color: var(--color-text-faint);
-    margin-top: 0.15rem;
-  }
-  .comment-delete {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-faint);
-    font-size: 0.75rem;
-    padding: 0.1rem 0.2rem;
-  }
-  .comment-delete:hover {
-    color: var(--urgency-over-text);
-  }
-  .comment-form {
-    display: flex;
-    gap: 0.4rem;
-    margin-top: 0.5rem;
-  }
-  .comment-input {
-    flex: 1;
-    font-size: 0.82rem;
-    padding: 0.3rem 0.55rem;
   }
 </style>

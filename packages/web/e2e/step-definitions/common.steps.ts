@@ -43,3 +43,9 @@ Then('I should see {string} as the page heading', async function (this: TodoWorl
 Then('I should see {string} as a success message', async function (this: TodoWorld, text: string) {
   await expect(this.page.locator('.alert-success')).toContainText(text)
 })
+
+Then('I should see the {string} button', async function (this: TodoWorld, buttonText: string) {
+  await expect(
+    this.page.locator(`a:has-text("${buttonText}"), button:has-text("${buttonText}")`)
+  ).toBeVisible()
+})
