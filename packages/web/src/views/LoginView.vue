@@ -31,7 +31,7 @@
         </button>
       </form>
       <div class="auth-divider"><span>or</span></div>
-      <a href="/api/auth/google" class="btn btn-google">Sign in with Google</a>
+      <a href="/todo/api/auth/google" class="btn btn-google">Sign in with Google</a>
       <p class="auth-footer">No account? <router-link to="/register">Register</router-link></p>
     </div>
   </div>

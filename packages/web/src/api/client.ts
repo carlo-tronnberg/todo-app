@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: '/todo/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -20,7 +20,7 @@ apiClient.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('auth_token')
-      window.location.href = '/login'
+      window.location.href = '/todo/login'
     }
     return Promise.reject(err)
   }

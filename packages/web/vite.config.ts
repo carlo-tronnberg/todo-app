@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs'
 const rootPkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8'))
 
 export default defineConfig({
+  base: '/todo/',
   define: {
     __APP_VERSION__: JSON.stringify(rootPkg.version),
   },
@@ -16,7 +17,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
       workbox: {
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/todo\/api\//],
       },
       manifest: {
         name: 'Todo Tracker',
@@ -41,9 +42,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
+      '/todo/api': {
         target: process.env.API_PROXY_TARGET ?? 'http://localhost:3000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/todo/, ''),
       },
     },
   },

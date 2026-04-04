@@ -62,7 +62,7 @@ describe('response interceptor', () => {
     const error = { response: { status: 401 } }
     await expect(responseReject(error)).rejects.toEqual(error)
     expect(localStorage.getItem('auth_token')).toBeNull()
-    expect((window as any).location.href).toBe('/login')
+    expect((window as any).location.href).toBe('/todo/login')
   })
 
   it('re-rejects non-401 errors without clearing token', async () => {

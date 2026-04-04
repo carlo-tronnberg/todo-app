@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.store'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/todo/'),
   scrollBehavior(to, _from, savedPosition) {
     /* c8 ignore next 3 */
     if (savedPosition) return savedPosition

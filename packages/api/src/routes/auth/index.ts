@@ -31,7 +31,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     '/google/callback',
     async (request, reply) => {
       if (request.query.error) {
-        return reply.redirect('/?error=google_denied')
+        const appBase = process.env.APP_BASE_PATH ?? '/'
+        return reply.redirect(`${appBase}?error=google_denied`)
       }
 
       const code = request.query.code
@@ -72,7 +73,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const token = app.jwt.sign({ sub: user.id, email: user.email, username: user.username })
 
       // Redirect to frontend with token — the frontend reads it from the URL
-      return reply.redirect(`/?token=${encodeURIComponent(token)}`)
+      const appBase = process.env.APP_BASE_PATH ?? '/'
+      return reply.redirect(`${appBase}?token=${encodeURIComponent(token)}`)
     }
   )
 
