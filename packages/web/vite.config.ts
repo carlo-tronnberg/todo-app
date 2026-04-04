@@ -25,7 +25,7 @@ export default defineConfig({
         description: 'Recurring todo list with expiry tracking',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
-        display: 'standalone',
+        display: 'minimal-ui',
         orientation: 'portrait-primary',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
