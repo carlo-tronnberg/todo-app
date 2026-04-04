@@ -45,41 +45,51 @@
       </div>
     </div>
     <!-- Item detail modal -->
-    <div v-if="detailItem" class="modal-backdrop">
+    <div v-if="detailItem || detailLoading || detailNotFound" class="modal-backdrop">
       <div class="modal card" role="dialog" aria-modal="true" aria-label="Item Detail">
-        <h2>{{ detailItem.title }}</h2>
-        <div v-if="detailItem.description" class="detail-desc">{{ detailItem.description }}</div>
-
-        <div class="detail-fields">
-          <div v-if="detailItem.dueDate" class="detail-field">
-            <strong>Due:</strong> {{ formatDate(detailItem.dueDate) }}
-          </div>
-          <div v-if="detailItem.amount" class="detail-field">
-            <strong>Amount:</strong> {{ detailItem.amount }} {{ detailItem.currency }}
-          </div>
-          <div
-            v-if="detailItem.recurrenceRule && detailItem.recurrenceRule.type !== 'none'"
-            class="detail-field"
-          >
-            <strong>Recurrence:</strong> {{ detailItem.recurrenceRule.type }}
-          </div>
-        </div>
-
-        <div v-if="detailCompletions.length > 0" class="detail-completions">
-          <h3>Completions ({{ detailCompletions.length }})</h3>
-          <div v-for="c in detailCompletions" :key="c.id" class="detail-completion-entry">
-            <span class="detail-completion-date">{{ formatDateTime(c.completedAt) }}</span>
-            <span v-if="c.amount" class="detail-completion-amount"
-              >{{ c.amount }} {{ c.currency }}</span
-            >
-            <span v-if="c.note" class="detail-completion-note">{{ c.note }}</span>
-          </div>
-        </div>
-        <div v-else-if="!detailLoading" class="detail-no-completions">No completions recorded.</div>
         <div v-if="detailLoading" class="loading">Loading…</div>
 
+        <div v-else-if="detailNotFound">
+          <h2>Item not found</h2>
+          <p class="detail-not-found">
+            This item has been deleted or archived and is no longer available.
+          </p>
+        </div>
+
+        <template v-else-if="detailItem">
+          <h2>{{ detailItem.title }}</h2>
+          <div v-if="detailItem.description" class="detail-desc">{{ detailItem.description }}</div>
+
+          <div class="detail-fields">
+            <div v-if="detailItem.dueDate" class="detail-field">
+              <strong>Due:</strong> {{ formatDate(detailItem.dueDate) }}
+            </div>
+            <div v-if="detailItem.amount" class="detail-field">
+              <strong>Amount:</strong> {{ detailItem.amount }} {{ detailItem.currency }}
+            </div>
+            <div
+              v-if="detailItem.recurrenceRule && detailItem.recurrenceRule.type !== 'none'"
+              class="detail-field"
+            >
+              <strong>Recurrence:</strong> {{ detailItem.recurrenceRule.type }}
+            </div>
+          </div>
+
+          <div v-if="detailCompletions.length > 0" class="detail-completions">
+            <h3>Completions ({{ detailCompletions.length }})</h3>
+            <div v-for="c in detailCompletions" :key="c.id" class="detail-completion-entry">
+              <span class="detail-completion-date">{{ formatDateTime(c.completedAt) }}</span>
+              <span v-if="c.amount" class="detail-completion-amount"
+                >{{ c.amount }} {{ c.currency }}</span
+              >
+              <span v-if="c.note" class="detail-completion-note">{{ c.note }}</span>
+            </div>
+          </div>
+          <div v-else class="detail-no-completions">No completions recorded.</div>
+        </template>
+
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="detailItem = null">Close</button>
+          <button class="btn btn-secondary" @click="closeDetail">Close</button>
         </div>
       </div>
     </div>
@@ -143,10 +153,13 @@
   const detailItem = ref<TodoItem | null>(null)
   const detailCompletions = ref<Completion[]>([])
   const detailLoading = ref(false)
+  const detailNotFound = ref(false)
 
   async function openDetail(itemId: string) {
     detailLoading.value = true
+    detailNotFound.value = false
     detailCompletions.value = []
+    detailItem.value = null
     try {
       const [item, completions] = await Promise.all([
         itemsApi.getOne(itemId),
@@ -157,10 +170,15 @@
         (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
       )
     } catch {
-      detailItem.value = null
+      detailNotFound.value = true
     } finally {
       detailLoading.value = false
     }
+  }
+
+  function closeDetail() {
+    detailItem.value = null
+    detailNotFound.value = false
   }
 </script>
 
@@ -308,6 +326,11 @@
   .detail-completion-note {
     color: var(--color-text-muted);
     font-style: italic;
+  }
+  .detail-not-found {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
   }
   .detail-no-completions {
     color: var(--color-text-faint);
