@@ -19,7 +19,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="entry in entries" :key="entry.id">
+          <tr
+            v-for="entry in entries"
+            :key="entry.id"
+            :class="{ clickable: entry.entityType === 'todo_item' }"
+            @click="entry.entityType === 'todo_item' && openDetail(entry.entityId)"
+          >
             <td class="audit-time">{{ formatDateTime(entry.createdAt) }}</td>
             <td>
               <span class="audit-action">{{ entry.action }}</span>
@@ -36,6 +41,45 @@
         </button>
       </div>
     </div>
+    <!-- Item detail modal -->
+    <div v-if="detailItem" class="modal-backdrop">
+      <div class="modal card" role="dialog" aria-modal="true" aria-label="Item Detail">
+        <h2>{{ detailItem.title }}</h2>
+        <div v-if="detailItem.description" class="detail-desc">{{ detailItem.description }}</div>
+
+        <div class="detail-fields">
+          <div v-if="detailItem.dueDate" class="detail-field">
+            <strong>Due:</strong> {{ formatDate(detailItem.dueDate) }}
+          </div>
+          <div v-if="detailItem.amount" class="detail-field">
+            <strong>Amount:</strong> {{ detailItem.amount }} {{ detailItem.currency }}
+          </div>
+          <div
+            v-if="detailItem.recurrenceRule && detailItem.recurrenceRule.type !== 'none'"
+            class="detail-field"
+          >
+            <strong>Recurrence:</strong> {{ detailItem.recurrenceRule.type }}
+          </div>
+        </div>
+
+        <div v-if="detailCompletions.length > 0" class="detail-completions">
+          <h3>Completions ({{ detailCompletions.length }})</h3>
+          <div v-for="c in detailCompletions" :key="c.id" class="detail-completion-entry">
+            <span class="detail-completion-date">{{ formatDateTime(c.completedAt) }}</span>
+            <span v-if="c.amount" class="detail-completion-amount"
+              >{{ c.amount }} {{ c.currency }}</span
+            >
+            <span v-if="c.note" class="detail-completion-note">{{ c.note }}</span>
+          </div>
+        </div>
+        <div v-else-if="!detailLoading" class="detail-no-completions">No completions recorded.</div>
+        <div v-if="detailLoading" class="loading">Loading…</div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" @click="detailItem = null">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -43,7 +87,8 @@
   import { ref, onMounted } from 'vue'
   import { format, parseISO } from 'date-fns'
   import { authApi } from '../api/auth.api'
-  import type { AuditLog } from '../types'
+  import { itemsApi } from '../api/items.api'
+  import type { AuditLog, TodoItem, Completion } from '../types'
 
   const PAGE = 100
 
@@ -75,6 +120,34 @@
 
   function formatDateTime(iso: string) {
     return format(parseISO(iso), 'dd MMM yyyy HH:mm')
+  }
+
+  function formatDate(iso: string) {
+    return format(parseISO(iso), 'dd MMM yyyy')
+  }
+
+  // ── Item detail modal ──────────────────────────────────────────────────
+  const detailItem = ref<TodoItem | null>(null)
+  const detailCompletions = ref<Completion[]>([])
+  const detailLoading = ref(false)
+
+  async function openDetail(itemId: string) {
+    detailLoading.value = true
+    detailCompletions.value = []
+    try {
+      const [item, completions] = await Promise.all([
+        itemsApi.getOne(itemId),
+        itemsApi.getCompletions(itemId),
+      ])
+      detailItem.value = item
+      detailCompletions.value = completions.sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+      )
+    } catch {
+      detailItem.value = null
+    } finally {
+      detailLoading.value = false
+    }
   }
 </script>
 
@@ -136,6 +209,89 @@
   .load-more {
     padding: 0.75rem;
     text-align: center;
+  }
+  .clickable {
+    cursor: pointer;
+  }
+  .clickable:hover {
+    background: var(--color-surface-sunken);
+  }
+
+  /* Item detail modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 1rem;
+  }
+  .modal {
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  .modal h3 {
+    font-size: 0.95rem;
+    margin: 1rem 0 0.5rem;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+  .detail-desc {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  .detail-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+  .detail-completions {
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.75rem;
+    padding-top: 0.25rem;
+  }
+  .detail-completion-entry {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.85rem;
+    align-items: baseline;
+  }
+  .detail-completion-entry:last-child {
+    border-bottom: none;
+  }
+  .detail-completion-date {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+  }
+  .detail-completion-amount {
+    font-weight: 500;
+  }
+  .detail-completion-note {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  .detail-no-completions {
+    color: var(--color-text-faint);
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
   }
 
   @media (max-width: 600px) {
