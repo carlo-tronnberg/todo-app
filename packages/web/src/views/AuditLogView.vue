@@ -22,15 +22,18 @@
           <tr
             v-for="entry in entries"
             :key="entry.id"
-            :class="{ clickable: entry.entityType === 'todo_item' }"
-            @click="entry.entityType === 'todo_item' && openDetail(entry.entityId)"
+            :class="{ clickable: isItemEntry(entry) }"
+            @click="handleRowClick(entry)"
           >
             <td class="audit-time">{{ formatDateTime(entry.createdAt) }}</td>
             <td>
               <span class="audit-action">{{ entry.action }}</span>
             </td>
             <td class="audit-entity">{{ entry.entityType }}</td>
-            <td class="audit-summary">{{ entry.summary ?? '—' }}</td>
+            <td class="audit-summary">
+              {{ entry.summary ?? '—' }}
+              <span v-if="isItemEntry(entry)" class="detail-hint">🔍</span>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -126,6 +129,16 @@
     return format(parseISO(iso), 'dd MMM yyyy')
   }
 
+  function isItemEntry(entry: AuditLog) {
+    return entry.entityType === 'todo_item'
+  }
+
+  function handleRowClick(entry: AuditLog) {
+    if (isItemEntry(entry)) {
+      openDetail(entry.entityId)
+    }
+  }
+
   // ── Item detail modal ──────────────────────────────────────────────────
   const detailItem = ref<TodoItem | null>(null)
   const detailCompletions = ref<Completion[]>([])
@@ -205,6 +218,14 @@
   }
   .audit-summary {
     color: var(--color-text);
+  }
+  .detail-hint {
+    font-size: 0.75rem;
+    margin-left: 0.3rem;
+    opacity: 0.5;
+  }
+  .clickable:hover .detail-hint {
+    opacity: 1;
   }
   .load-more {
     padding: 0.75rem;
