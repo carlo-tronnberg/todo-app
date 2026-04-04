@@ -15,6 +15,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
+      workbox: {
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'Todo Tracker',
         short_name: 'Todos',
