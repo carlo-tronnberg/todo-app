@@ -1,5 +1,5 @@
-import { eq, and, inArray, gte, lte } from 'drizzle-orm'
-import { Database, todoLists, todoItems, recurrenceRules, completions } from '../db'
+import { eq, and, inArray, gte, lte, sql } from 'drizzle-orm'
+import { Database, todoLists, todoItems, recurrenceRules, completions, itemComments } from '../db'
 
 export interface CreateListInput {
   title: string
@@ -182,9 +182,27 @@ export class ListsService {
       rulesById = Object.fromEntries(rules.map((r) => [r.id, r]))
     }
 
+    // Bulk-fetch comment counts
+    const itemIds = items.map((i) => i.id)
+    const commentCountById: Record<string, number> = {}
+    if (itemIds.length > 0) {
+      const counts = await this.db
+        .select({
+          itemId: itemComments.itemId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(itemComments)
+        .where(inArray(itemComments.itemId, itemIds))
+        .groupBy(itemComments.itemId)
+      for (const row of counts) {
+        commentCountById[row.itemId] = row.count
+      }
+    }
+
     return items.map((item) => ({
       ...item,
       recurrenceRule: item.recurrenceRuleId ? (rulesById[item.recurrenceRuleId] ?? null) : null,
+      commentCount: commentCountById[item.id] ?? 0,
     }))
   }
 }

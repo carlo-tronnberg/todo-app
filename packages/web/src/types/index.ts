@@ -55,6 +55,7 @@ export interface TodoItem {
   currency?: string | null
   url?: string | null
   colorOverride?: string | null
+  commentCount?: number
   isArchived: boolean
   sortOrder: number
   createdAt: string
