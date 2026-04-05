@@ -33,6 +33,7 @@
           :comments="commentsByItem[item.id] ?? []"
           :loading="commentsLoading.has(item.id)"
           :is-open="commentsOpen.has(item.id)"
+          :initial-count="item.commentCount ?? 0"
           @toggle="toggleComments(item.id)"
           @add="addComment(item.id, $event)"
           @delete="deleteComment(item.id, $event)"

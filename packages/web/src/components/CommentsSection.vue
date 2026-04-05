@@ -3,7 +3,9 @@
     <div class="comments-bar">
       <button class="comments-toggle" @click="toggle">
         {{
-          isOpen ? '▲ Hide comments' : `▼ Comments${comments.length ? ` (${comments.length})` : ''}`
+          isOpen
+            ? '▲ Hide comments'
+            : `▼ Comments${comments.length || initialCount ? ` (${comments.length || initialCount})` : ''}`
         }}
       </button>
     </div>
@@ -44,6 +46,7 @@
     comments: ItemComment[]
     loading: boolean
     isOpen: boolean
+    initialCount: number
   }>()
 
   const emit = defineEmits<{
