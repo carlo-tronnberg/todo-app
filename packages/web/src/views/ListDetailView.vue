@@ -42,7 +42,7 @@
     </div>
 
     <!-- Add/Edit Item Modal -->
-    <div v-if="showAddModal || editingItem" class="modal-backdrop">
+    <div v-if="showAddModal || editingItem" class="modal-backdrop" @keydown.escape="closeModal">
       <div
         class="modal card"
         role="dialog"

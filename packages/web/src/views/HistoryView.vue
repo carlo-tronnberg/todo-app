@@ -37,7 +37,7 @@
 
     <!-- Undo confirmation modal -->
     <Teleport to="body">
-      <div v-if="undoTarget" class="modal-overlay">
+      <div v-if="undoTarget" class="modal-overlay" @keydown.escape="undoTarget = null">
         <div class="modal card" role="dialog" aria-modal="true" aria-label="Undo completion">
           <h2>Undo completion?</h2>
           <p>

@@ -45,7 +45,11 @@
       </div>
     </div>
     <!-- Item detail modal -->
-    <div v-if="detailItem || detailLoading || detailNotFound" class="modal-backdrop">
+    <div
+      v-if="detailItem || detailLoading || detailNotFound"
+      class="modal-backdrop"
+      @keydown.escape="closeDetail"
+    >
       <div class="modal card" role="dialog" aria-modal="true" aria-label="Item Detail">
         <div v-if="detailLoading" class="loading">Loading…</div>
 

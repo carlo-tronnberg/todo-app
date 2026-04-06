@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-backdrop">
+  <div class="modal-backdrop" @keydown.escape="$emit('cancel')">
     <div class="modal card" role="dialog" aria-modal="true" aria-label="Complete Item">
       <h2>Complete Item</h2>
       <div class="form-group completion-amount">
@@ -29,18 +29,20 @@
             <option value="DKK">DKK</option>
             <option value="HUF">HUF</option>
           </select>
-          <select
-            :value="transactionType"
-            class="form-input"
-            style="max-width: 8rem"
-            @change="$emit('update:transactionType', ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">— Type —</option>
-            <option v-for="tt in transactionTypes" :key="tt.id" :value="tt.name">
-              {{ tt.name }}
-            </option>
-          </select>
         </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Transaction type</label>
+        <select
+          :value="transactionType"
+          class="form-input"
+          @change="$emit('update:transactionType', ($event.target as HTMLSelectElement).value)"
+        >
+          <option value="">— None —</option>
+          <option v-for="tt in transactionTypes" :key="tt.id" :value="tt.name">
+            {{ tt.name }}
+          </option>
+        </select>
       </div>
       <p style="margin-bottom: 0.5rem; color: #64748b">Add an optional note for this completion:</p>
       <div class="form-group">

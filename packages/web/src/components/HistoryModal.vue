@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-backdrop">
+  <div class="modal-backdrop" @keydown.escape="$emit('close')">
     <div
       class="modal card history-modal"
       role="dialog"
