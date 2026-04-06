@@ -69,6 +69,13 @@
   }
 </script>
 
+<style>
+  /* Prevent layout shift when scrollbar appears/disappears */
+  html {
+    overflow-y: scroll;
+  }
+</style>
+
 <style scoped>
   .nav-bar {
     background: #3b82f6;

@@ -9,14 +9,14 @@
         class="list-tab"
         :class="{ active: l.id === listId }"
       >
-        {{ l.title }}
+        {{ l.icon ? `${l.icon} ` : '' }}{{ l.title }}
       </router-link>
     </div>
 
     <div class="list-header">
       <div>
         <router-link :to="backTo" class="back-link">← Back</router-link>
-        <h1 v-if="list">{{ list.title }}</h1>
+        <h1 v-if="list">{{ list.icon ? `${list.icon} ` : '' }}{{ list.title }}</h1>
         <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
       </div>
       <button class="btn btn-primary" @click="openAddModal">+ Add Item</button>

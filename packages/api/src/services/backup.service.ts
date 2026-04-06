@@ -58,6 +58,7 @@ interface BackupList {
   title: string
   description: string | null
   defaultCurrency: string | null
+  icon: string | null
   items: BackupItem[]
 }
 
@@ -150,6 +151,7 @@ export class BackupService {
         title: list.title,
         description: list.description,
         defaultCurrency: list.defaultCurrency,
+        icon: list.icon,
         items: (itemsByList.get(list.id) ?? []).map((item) => ({
           title: item.title,
           description: item.description,
@@ -217,6 +219,7 @@ export class BackupService {
             title: listData.title,
             description: listData.description ?? null,
             defaultCurrency: listData.defaultCurrency ?? null,
+            icon: listData.icon ?? null,
           })
           .returning()
 

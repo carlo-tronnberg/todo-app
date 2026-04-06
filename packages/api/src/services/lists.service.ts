@@ -5,12 +5,14 @@ export interface CreateListInput {
   title: string
   description?: string
   defaultCurrency?: string
+  icon?: string
 }
 
 export interface UpdateListInput {
   title?: string
   description?: string
   defaultCurrency?: string | null
+  icon?: string | null
 }
 
 export class ListsService {
@@ -138,6 +140,7 @@ export class ListsService {
         title: input.title,
         description: input.description,
         defaultCurrency: input.defaultCurrency,
+        icon: input.icon,
       })
       .returning()
 

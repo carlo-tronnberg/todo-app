@@ -47,6 +47,7 @@ export const todoLists = pgTable('todo_lists', {
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   defaultCurrency: varchar('default_currency', { length: 3 }),
+  icon: varchar('icon', { length: 10 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

@@ -15,7 +15,7 @@
       <div v-for="list in sortedLists" :key="list.id" class="list-card card">
         <!-- Clickable body navigates to the list -->
         <div class="list-card-body" @click="$router.push(`/lists/${list.id}`)">
-          <h2 class="list-title">{{ list.title }}</h2>
+          <h2 class="list-title">{{ list.icon ? `${list.icon} ` : '' }}{{ list.title }}</h2>
           <p v-if="list.description" class="list-desc">{{ list.description }}</p>
           <div class="list-stats">
             <span v-if="list.uncompletedThisMonth" class="stat-badge">
@@ -78,6 +78,17 @@
               <option value="HUF">HUF</option>
             </select>
           </div>
+          <div class="form-group">
+            <label class="form-label">Icon (emoji, optional)</label>
+            <input
+              v-model="form.icon"
+              type="text"
+              class="form-input"
+              style="max-width: 80px"
+              placeholder="🇸🇪"
+              maxlength="4"
+            />
+          </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModals">Cancel</button>
             <button type="submit" class="btn btn-primary" :disabled="!form.title.trim()">
@@ -118,6 +129,17 @@
               <option value="DKK">DKK</option>
               <option value="HUF">HUF</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icon (emoji, optional)</label>
+            <input
+              v-model="form.icon"
+              type="text"
+              class="form-input"
+              style="max-width: 80px"
+              placeholder="🇸🇪"
+              maxlength="4"
+            />
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeModals">Cancel</button>
@@ -176,7 +198,7 @@
   const deletingList = ref<TodoList | null>(null)
   const deleting = ref(false)
 
-  const form = ref({ title: '', description: '', defaultCurrency: '' })
+  const form = ref({ title: '', description: '', defaultCurrency: '', icon: '' })
 
   const createTitleInput = ref<HTMLInputElement | null>(null)
   const editTitleInput = ref<HTMLInputElement | null>(null)
@@ -202,12 +224,12 @@
     editingList.value = null
     deletingList.value = null
     deleting.value = false
-    form.value = { title: '', description: '', defaultCurrency: '' }
+    form.value = { title: '', description: '', defaultCurrency: '', icon: '' }
   }
 
   // ── Open modals ──────────────────────────────────────────────────────────────
   function openCreate() {
-    form.value = { title: '', description: '', defaultCurrency: '' }
+    form.value = { title: '', description: '', defaultCurrency: '', icon: '' }
     showCreateModal.value = true
     nextTick(() => createTitleInput.value?.focus())
   }
@@ -218,6 +240,7 @@
       title: list.title,
       description: list.description ?? '',
       defaultCurrency: list.defaultCurrency ?? '',
+      icon: list.icon ?? '',
     }
     showEditModal.value = true
     nextTick(() => editTitleInput.value?.focus())
@@ -234,7 +257,8 @@
     await listsStore.createList(
       form.value.title.trim(),
       form.value.description.trim() || undefined,
-      form.value.defaultCurrency.trim().toUpperCase() || undefined
+      form.value.defaultCurrency.trim().toUpperCase() || undefined,
+      form.value.icon.trim() || undefined
     )
     closeModals()
   }
@@ -245,6 +269,7 @@
       title: form.value.title.trim(),
       description: form.value.description.trim() || undefined,
       defaultCurrency: form.value.defaultCurrency.trim().toUpperCase() || null,
+      icon: form.value.icon.trim() || null,
     })
     closeModals()
   }

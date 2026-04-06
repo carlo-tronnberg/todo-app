@@ -20,8 +20,13 @@ export const useListsStore = defineStore('lists', () => {
     }
   }
 
-  async function createList(title: string, description?: string, defaultCurrency?: string) {
-    const list = await listsApi.create({ title, description, defaultCurrency })
+  async function createList(
+    title: string,
+    description?: string,
+    defaultCurrency?: string,
+    icon?: string
+  ) {
+    const list = await listsApi.create({ title, description, defaultCurrency, icon })
     lists.value.push(list)
     return list
   }

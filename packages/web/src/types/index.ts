@@ -35,6 +35,7 @@ export interface TodoList {
   title: string
   description?: string | null
   defaultCurrency?: string | null
+  icon?: string | null
   createdAt: string
   updatedAt: string
   uncompletedThisMonth?: number
