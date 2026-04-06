@@ -110,7 +110,8 @@
     margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
     min-height: 48px;
   }
 
@@ -258,8 +259,29 @@
   }
 
   @media (max-width: 600px) {
+    .nav-content {
+      gap: 0;
+      padding: 0.25rem 0;
+    }
+    .nav-left {
+      order: 1;
+    }
+    .nav-right {
+      order: 2;
+      margin-left: auto;
+    }
+    .nav-links {
+      order: 3;
+      width: 100%;
+      justify-content: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.25rem 0;
+      gap: 0;
+    }
     .nav-links a {
-      padding: 0.25rem 0.35rem;
+      flex: 1;
+      text-align: center;
+      padding: 0.3rem 0.25rem;
       font-size: 0.82rem;
     }
     .main-content {
