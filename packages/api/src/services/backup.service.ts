@@ -27,6 +27,7 @@ interface BackupCompletion {
   note: string | null
   amount: string | null
   currency: string | null
+  transactionType: string | null
 }
 
 interface BackupComment {
@@ -43,6 +44,7 @@ interface BackupItem {
   dueDate: string | null
   amount: string | null
   currency: string | null
+  transactionType: string | null
   url: string | null
   colorOverride: string | null
   isArchived: boolean
@@ -157,6 +159,7 @@ export class BackupService {
           dueDate: item.dueDate?.toISOString() ?? null,
           amount: item.amount,
           currency: item.currency,
+          transactionType: item.transactionType,
           url: item.url,
           colorOverride: item.colorOverride,
           isArchived: item.isArchived,
@@ -181,6 +184,7 @@ export class BackupService {
             note: c.note,
             amount: c.amount,
             currency: c.currency,
+            transactionType: c.transactionType,
           })),
           comments: (commentsByItem.get(item.id) ?? []).map((c) => ({
             content: c.content,
@@ -251,6 +255,7 @@ export class BackupService {
               dueDate: itemData.dueDate ? new Date(itemData.dueDate) : null,
               amount: itemData.amount ?? null,
               currency: itemData.currency ?? null,
+              transactionType: itemData.transactionType ?? null,
               url: itemData.url ?? null,
               colorOverride: itemData.colorOverride ?? null,
               isArchived: itemData.isArchived ?? false,
@@ -269,6 +274,7 @@ export class BackupService {
                 note: c.note ?? null,
                 amount: c.amount ?? null,
                 currency: c.currency ?? null,
+                transactionType: c.transactionType ?? null,
               }))
             )
           }

@@ -89,7 +89,7 @@ export const todoItems = pgTable('todo_items', {
   // Optional monetary amount
   amount: numeric('amount', { precision: 12, scale: 2 }),
   currency: varchar('currency', { length: 3 }),
-  // Optional user-pinned color override (hex, e.g. #3b82f6)
+  transactionType: varchar('transaction_type', { length: 100 }),
   url: text('url'),
   colorOverride: varchar('color_override', { length: 7 }),
   isArchived: boolean('is_archived').notNull().default(false),
@@ -111,6 +111,18 @@ export const completions = pgTable('completions', {
   note: text('note'),
   amount: numeric('amount', { precision: 12, scale: 2 }),
   currency: varchar('currency', { length: 3 }),
+  transactionType: varchar('transaction_type', { length: 100 }),
+})
+
+// ── transaction_types ─────────────────────────────────────────────────────────
+
+export const transactionTypes = pgTable('transaction_types', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 // ── item_comments ─────────────────────────────────────────────────────────────

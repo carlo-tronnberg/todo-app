@@ -15,6 +15,7 @@ export interface CreateItemInput {
   endTime?: string
   amount?: string
   currency?: string
+  transactionType?: string
   url?: string
   colorOverride?: string
   sortOrder?: number
@@ -30,6 +31,7 @@ export interface UpdateItemInput {
   endTime?: string | null
   amount?: string | null
   currency?: string | null
+  transactionType?: string | null
   url?: string | null
   colorOverride?: string | null
   sortOrder?: number
@@ -118,6 +120,7 @@ export class ItemsService {
         dueDate: resolvedDueDate,
         amount: input.amount,
         currency: input.currency,
+        transactionType: input.transactionType,
         url: input.url,
         colorOverride: input.colorOverride,
         sortOrder: input.sortOrder ?? 0,
@@ -207,6 +210,8 @@ export class ItemsService {
     if (input.endTime !== undefined) updateData.endTime = input.endTime ?? null
     if (input.amount !== undefined) updateData.amount = input.amount ?? null
     if (input.currency !== undefined) updateData.currency = input.currency ?? null
+    if (input.transactionType !== undefined)
+      updateData.transactionType = input.transactionType ?? null
     if (input.url !== undefined) updateData.url = input.url ?? null
     if (input.colorOverride !== undefined) updateData.colorOverride = input.colorOverride ?? null
     if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder
@@ -248,7 +253,7 @@ export class ItemsService {
 
   async complete(
     item: { id: string; dueDate: Date | null },
-    opts?: { note?: string; amount?: string; currency?: string }
+    opts?: { note?: string; amount?: string; currency?: string; transactionType?: string }
   ) {
     const [completion] = await this.db
       .insert(completions)
@@ -258,6 +263,7 @@ export class ItemsService {
         note: opts?.note,
         amount: opts?.amount,
         currency: opts?.currency,
+        transactionType: opts?.transactionType,
       })
       .returning()
 
@@ -298,6 +304,7 @@ export class ItemsService {
       endTime: existing.endTime ?? undefined,
       amount: existing.amount != null ? String(existing.amount) : undefined,
       currency: existing.currency ?? undefined,
+      transactionType: existing.transactionType ?? undefined,
       url: existing.url ?? undefined,
       colorOverride: existing.colorOverride ?? undefined,
       sortOrder: existing.sortOrder,

@@ -80,7 +80,8 @@
             <div v-for="c in detailCompletions" :key="c.id" class="detail-completion-entry">
               <span class="detail-completion-date">{{ formatDateTime(c.completedAt) }}</span>
               <span v-if="c.amount" class="detail-completion-amount"
-                >{{ c.amount }} {{ c.currency }}</span
+                >{{ c.amount }} {{ c.currency
+                }}{{ c.transactionType ? ` · ${c.transactionType}` : '' }}</span
               >
               <span v-if="c.note" class="detail-completion-note">{{ c.note }}</span>
             </div>

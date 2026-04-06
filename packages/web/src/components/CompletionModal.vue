@@ -29,6 +29,17 @@
             <option value="DKK">DKK</option>
             <option value="HUF">HUF</option>
           </select>
+          <select
+            :value="transactionType"
+            class="form-input"
+            style="max-width: 8rem"
+            @change="$emit('update:transactionType', ($event.target as HTMLSelectElement).value)"
+          >
+            <option value="">— Type —</option>
+            <option v-for="tt in transactionTypes" :key="tt.id" :value="tt.name">
+              {{ tt.name }}
+            </option>
+          </select>
         </div>
       </div>
       <p style="margin-bottom: 0.5rem; color: #64748b">Add an optional note for this completion:</p>
@@ -52,16 +63,20 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
+  import type { TransactionType } from '../types'
 
   defineProps<{
     amount: string
     currency: string
+    transactionType: string
+    transactionTypes: TransactionType[]
     note: string
   }>()
 
   defineEmits<{
     'update:amount': [value: string]
     'update:currency': [value: string]
+    'update:transactionType': [value: string]
     'update:note': [value: string]
     confirm: []
     cancel: []

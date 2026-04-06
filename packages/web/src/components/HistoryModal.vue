@@ -21,7 +21,8 @@
             {{ formatDate(c.dueDateSnapshot).split(' ').slice(0, 3).join(' ') }}
           </div>
           <div v-if="c.amount" class="history-amount">
-            <strong>Amount:</strong> {{ c.amount }} {{ c.currency }}
+            <strong>Amount:</strong> {{ c.amount }} {{ c.currency
+            }}{{ c.transactionType ? ` · ${c.transactionType}` : '' }}
           </div>
           <div v-if="c.note" class="history-note">{{ c.note }}</div>
           <div class="history-actions">

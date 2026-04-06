@@ -154,6 +154,15 @@
                 <option value="HUF">HUF</option>
               </select>
             </div>
+            <div class="form-col">
+              <label class="form-label">Type</label>
+              <select v-model="form.transactionType" class="form-input">
+                <option value="">—</option>
+                <option v-for="tt in transactionTypesList" :key="tt.id" :value="tt.name">
+                  {{ tt.name }}
+                </option>
+              </select>
+            </div>
           </div>
 
           <div class="form-group">
@@ -245,7 +254,9 @@
       v-if="completingItemId"
       v-model:amount="completionAmount"
       v-model:currency="completionCurrency"
+      v-model:transaction-type="completionTransactionType"
       v-model:note="completionNote"
+      :transaction-types="transactionTypesList"
       @confirm="confirmComplete"
       @cancel="completingItemId = null"
     />
@@ -339,6 +350,8 @@
   import { useRoute, useRouter } from 'vue-router'
   import { listsApi } from '../api/lists.api'
   import { itemsApi } from '../api/items.api'
+  import { transactionTypesApi } from '../api/transaction-types.api'
+  import type { TransactionType } from '../types'
   import { useItemsStore } from '../stores/items.store'
   import { useListsStore } from '../stores/lists.store'
   import TodoItemComponent from '../components/todo/TodoItem.vue'
@@ -353,6 +366,7 @@
   const itemsStore = useItemsStore()
   const listsStore = useListsStore()
   const listId = route.params.listId as string
+  const transactionTypesList = ref<TransactionType[]>([])
 
   /** Back destination: go to the calendar (at unscheduled section) if we arrived from there */
   const backTo = computed(() => (route.query.from === 'calendar' ? '/calendar#unscheduled' : '/'))
@@ -367,6 +381,7 @@
   const completionNote = ref('')
   const completionAmount = ref('')
   const completionCurrency = ref('')
+  const completionTransactionType = ref('')
   const saving = ref(false)
   const saveError = ref('')
 
@@ -410,6 +425,7 @@
   const BLANK_FORM = () => ({
     title: '',
     description: '',
+    transactionType: '',
     url: '',
     startDate: '',
     startTime: '',
@@ -483,7 +499,11 @@
 
   onMounted(async () => {
     list.value = await listsApi.getOne(listId)
-    await Promise.all([itemsStore.fetchItems(listId), listsStore.fetchLists()])
+    await Promise.all([
+      itemsStore.fetchItems(listId),
+      listsStore.fetchLists(),
+      transactionTypesApi.getAll().then((t) => (transactionTypesList.value = t)),
+    ])
 
     // Open edit modal for a specific item (from unscheduled calendar click)
     const editItemId = route.query.editItem as string | undefined
@@ -523,6 +543,7 @@
     form.value = {
       title: item.title,
       description: item.description ?? '',
+      transactionType: item.transactionType ?? '',
       url: item.url ?? '',
       startDate: item.startDate ? item.startDate.substring(0, 10) : '',
       startTime: item.startTime ?? '',
@@ -548,6 +569,7 @@
     form.value = {
       title: `Copy of ${item.title}`,
       description: item.description ?? '',
+      transactionType: item.transactionType ?? '',
       url: item.url ?? '',
       startDate: item.startDate ? item.startDate.substring(0, 10) : '',
       startTime: item.startTime ?? '',
@@ -574,16 +596,23 @@
     const item = itemsStore.getItems(listId).find((i) => i.id === itemId)
     completionAmount.value = item?.amount ?? ''
     completionCurrency.value = item?.currency ?? list.value?.defaultCurrency ?? ''
+    completionTransactionType.value = item?.transactionType ?? ''
   }
 
   async function confirmComplete() {
     if (!completingItemId.value) return
-    const opts: { note?: string; amount?: string; currency?: string } = {}
+    const opts: {
+      note?: string
+      amount?: string
+      currency?: string
+      transactionType?: string
+    } = {}
     if (completionNote.value) opts.note = completionNote.value
     if (completionAmount.value) {
       opts.amount = completionAmount.value
       opts.currency = completionCurrency.value || undefined
     }
+    if (completionTransactionType.value) opts.transactionType = completionTransactionType.value
     await itemsStore.completeItem(listId, completingItemId.value, opts)
     completingItemId.value = null
   }
@@ -623,6 +652,9 @@
         title: form.value.title,
         // null clears the field; undefined leaves it unchanged (for new items: omit)
         description: isEdit ? form.value.description || null : form.value.description || undefined,
+        transactionType: isEdit
+          ? form.value.transactionType || null
+          : form.value.transactionType || undefined,
         url: isEdit ? form.value.url || null : form.value.url || undefined,
         dueDate: isEdit
           ? form.value.dueDate

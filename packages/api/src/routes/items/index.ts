@@ -62,17 +62,17 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/items/:itemId/complete
   app.post<{
     Params: { itemId: string }
-    Body: { note?: string; amount?: string; currency?: string }
+    Body: { note?: string; amount?: string; currency?: string; transactionType?: string }
   }>('/:itemId/complete', auth, async (request, reply) => {
     const item = await itemsService.findById(request.params.itemId, request.user.sub)
     if (!item) return reply.notFound()
 
-    const { note, amount, currency } = request.body ?? {}
+    const { note, amount, currency, transactionType } = request.body ?? {}
 
     // Record completion with timestamp and due-date snapshot
     const completion = await itemsService.complete(
       { id: item.id, dueDate: item.dueDate },
-      { note, amount, currency }
+      { note, amount, currency, transactionType }
     )
 
     // Advance due date for recurring items

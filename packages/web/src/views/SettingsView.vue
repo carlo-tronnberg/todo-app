@@ -35,6 +35,27 @@
       <div v-if="restoreError" class="alert alert-error">{{ restoreError }}</div>
     </section>
 
+    <!-- Transaction Types -->
+    <section class="card settings-section">
+      <h2>Transaction Types</h2>
+      <p class="section-hint">
+        Configure the transaction types available when creating or completing items.
+      </p>
+      <div v-if="txTypesLoading" class="loading">Loading…</div>
+      <ul v-else class="tx-list">
+        <li v-for="tt in txTypes" :key="tt.id" class="tx-item">
+          <span>{{ tt.name }}</span>
+          <button class="tx-delete" title="Remove" @click="removeTxType(tt.id)">✕</button>
+        </li>
+      </ul>
+      <form class="tx-add-form" @submit.prevent="addTxType">
+        <input v-model="newTxName" type="text" class="form-input" placeholder="New type…" />
+        <button type="submit" class="btn btn-secondary btn-sm" :disabled="!newTxName.trim()">
+          Add
+        </button>
+      </form>
+    </section>
+
     <!-- App info -->
     <section class="card settings-section">
       <h2>About</h2>
@@ -44,11 +65,39 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, onMounted } from 'vue'
   import { backupApi } from '../api/backup.api'
+  import { transactionTypesApi } from '../api/transaction-types.api'
+  import type { TransactionType } from '../types'
 
   declare const __APP_VERSION__: string
   const version = __APP_VERSION__
+
+  // Transaction types
+  const txTypes = ref<TransactionType[]>([])
+  const txTypesLoading = ref(true)
+  const newTxName = ref('')
+
+  onMounted(async () => {
+    try {
+      txTypes.value = await transactionTypesApi.getAll()
+    } finally {
+      txTypesLoading.value = false
+    }
+  })
+
+  async function addTxType() {
+    const name = newTxName.value.trim()
+    if (!name) return
+    const created = await transactionTypesApi.create(name)
+    txTypes.value = [...txTypes.value, created].sort((a, b) => a.name.localeCompare(b.name))
+    newTxName.value = ''
+  }
+
+  async function removeTxType(id: string) {
+    await transactionTypesApi.remove(id)
+    txTypes.value = txTypes.value.filter((t) => t.id !== id)
+  }
 
   const backupBusy = ref(false)
   const backupError = ref('')
@@ -140,5 +189,43 @@
   .alert-error {
     background: var(--urgency-over-bg);
     color: var(--urgency-over-text);
+  }
+  .tx-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.75rem;
+  }
+  .tx-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+  }
+  .tx-item:last-child {
+    border-bottom: none;
+  }
+  .tx-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-faint);
+    font-size: 0.8rem;
+    padding: 0.1rem 0.3rem;
+  }
+  .tx-delete:hover {
+    color: var(--urgency-over-text);
+  }
+  .tx-add-form {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .tx-add-form .form-input {
+    flex: 1;
+  }
+  .btn-sm {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.65rem;
   }
 </style>

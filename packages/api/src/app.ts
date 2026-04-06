@@ -11,6 +11,7 @@ import { completionsRoutes } from './routes/completions'
 import { commentsRoutes } from './routes/comments'
 import { auditRoutes } from './routes/audit'
 import { backupRoutes } from './routes/backup'
+import { transactionTypeRoutes } from './routes/transaction-types'
 
 export async function buildApp(opts: { logger?: boolean } = {}) {
   const app = Fastify({
@@ -33,6 +34,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(commentsRoutes, { prefix: '/api/comments' })
   await app.register(auditRoutes, { prefix: '/api/audit' })
   await app.register(backupRoutes, { prefix: '/api/backup' })
+  await app.register(transactionTypeRoutes, { prefix: '/api/transaction-types' })
 
   // Health check
   app.get('/health', async () => ({
