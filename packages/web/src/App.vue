@@ -2,7 +2,7 @@
   <div id="app-root">
     <nav v-if="auth.isAuthenticated" class="nav-bar">
       <div class="nav-content">
-        <span class="nav-brand">📋 Todo Tracker</span>
+        <router-link to="/" class="nav-brand">📋 Todo Tracker</router-link>
 
         <div class="nav-links">
           <router-link to="/">📋 Lists</router-link>
@@ -105,6 +105,8 @@
     font-size: 1.1rem;
     white-space: nowrap;
     order: 1;
+    text-decoration: none;
+    color: inherit;
   }
   .nav-links {
     display: flex;
