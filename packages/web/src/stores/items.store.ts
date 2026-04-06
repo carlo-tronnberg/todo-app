@@ -36,7 +36,7 @@ export const useItemsStore = defineStore('items', () => {
   async function completeItem(
     listId: string,
     itemId: string,
-    opts?: { note?: string; amount?: string; currency?: string }
+    opts?: { note?: string; amount?: string; currency?: string; transactionType?: string }
   ): Promise<Completion> {
     const completion = await itemsApi.complete(itemId, opts)
     // Refresh the item to get the new due date after recurrence advance

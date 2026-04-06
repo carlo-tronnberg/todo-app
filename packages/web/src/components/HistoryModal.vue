@@ -21,7 +21,8 @@
             {{ formatDate(c.dueDateSnapshot).split(' ').slice(0, 3).join(' ') }}
           </div>
           <div v-if="c.amount" class="history-amount">
-            <strong>Amount:</strong> {{ c.amount }} {{ c.currency }}
+            <strong>Amount:</strong> {{ c.amount }} {{ c.currency
+            }}{{ c.transactionType ? ` · ${c.transactionType}` : '' }}
           </div>
           <div v-if="c.note" class="history-note">{{ c.note }}</div>
           <div class="history-actions">
@@ -39,16 +40,19 @@
 <script setup lang="ts">
   import { format, parseISO } from 'date-fns'
   import type { Completion } from '../types'
+  import { useEscapeKey } from '../composables/useEscapeKey'
 
   defineProps<{
     completions: Completion[]
     loading: boolean
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     undo: [completion: Completion]
     close: []
   }>()
+
+  useEscapeKey(() => emit('close'))
 
   function formatDate(iso: string) {
     return format(parseISO(iso), 'dd MMM yyyy HH:mm')

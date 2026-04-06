@@ -80,7 +80,8 @@
             <div v-for="c in detailCompletions" :key="c.id" class="detail-completion-entry">
               <span class="detail-completion-date">{{ formatDateTime(c.completedAt) }}</span>
               <span v-if="c.amount" class="detail-completion-amount"
-                >{{ c.amount }} {{ c.currency }}</span
+                >{{ c.amount }} {{ c.currency
+                }}{{ c.transactionType ? ` · ${c.transactionType}` : '' }}</span
               >
               <span v-if="c.note" class="detail-completion-note">{{ c.note }}</span>
             </div>
@@ -98,6 +99,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
+  import { useEscapeKey } from '../composables/useEscapeKey'
   import { format, parseISO } from 'date-fns'
   import { authApi } from '../api/auth.api'
   import { itemsApi } from '../api/items.api'
@@ -180,6 +182,12 @@
     detailItem.value = null
     detailNotFound.value = false
   }
+
+  useEscapeKey(() => {
+    if (detailItem.value || detailNotFound.value || detailLoading.value) {
+      closeDetail()
+    }
+  })
 </script>
 
 <style scoped>

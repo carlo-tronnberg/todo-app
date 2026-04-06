@@ -38,6 +38,11 @@
         <span v-if="amountLabel" class="meta-pill meta-amount">
           {{ amountLabel }}
         </span>
+
+        <!-- Transaction type badge -->
+        <span v-if="item.transactionType" class="meta-pill meta-txtype">
+          {{ item.transactionType }}
+        </span>
       </div>
     </div>
 
@@ -322,6 +327,10 @@
     background: var(--pill-default-bg);
     color: var(--color-text-muted);
     font-variant-numeric: tabular-nums;
+  }
+  .meta-txtype {
+    background: var(--pill-default-bg);
+    color: var(--color-text-muted);
   }
 
   /* Recurrence badge */

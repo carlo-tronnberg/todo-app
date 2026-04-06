@@ -4,7 +4,7 @@
       <h2>Complete Item</h2>
       <div class="form-group completion-amount">
         <label class="form-label">Amount</label>
-        <div class="form-row">
+        <div class="amount-row">
           <input
             ref="amountRef"
             :value="amount"
@@ -13,13 +13,14 @@
             min="0"
             class="form-input"
             placeholder="0.00"
+            style="max-width: 8rem"
             @input="$emit('update:amount', ($event.target as HTMLInputElement).value)"
             @keydown.enter.prevent="$emit('confirm')"
           />
           <select
             :value="currency"
             class="form-input"
-            style="max-width: 6rem"
+            style="max-width: 5.5rem"
             @change="$emit('update:currency', ($event.target as HTMLSelectElement).value)"
           >
             <option value="">—</option>
@@ -30,6 +31,19 @@
             <option value="HUF">HUF</option>
           </select>
         </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Transaction type</label>
+        <select
+          :value="transactionType"
+          class="form-input"
+          @change="$emit('update:transactionType', ($event.target as HTMLSelectElement).value)"
+        >
+          <option value="">— None —</option>
+          <option v-for="tt in transactionTypes" :key="tt.id" :value="tt.name">
+            {{ tt.name }}
+          </option>
+        </select>
       </div>
       <p style="margin-bottom: 0.5rem; color: #64748b">Add an optional note for this completion:</p>
       <div class="form-group">
@@ -52,20 +66,27 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
+  import type { TransactionType } from '../types'
+  import { useEscapeKey } from '../composables/useEscapeKey'
 
   defineProps<{
     amount: string
     currency: string
+    transactionType: string
+    transactionTypes: TransactionType[]
     note: string
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     'update:amount': [value: string]
     'update:currency': [value: string]
+    'update:transactionType': [value: string]
     'update:note': [value: string]
     confirm: []
     cancel: []
   }>()
+
+  useEscapeKey(() => emit('cancel'))
 
   const amountRef = ref<HTMLInputElement | null>(null)
 
@@ -73,3 +94,11 @@
     amountRef.value?.focus()
   })
 </script>
+
+<style scoped>
+  .amount-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+</style>

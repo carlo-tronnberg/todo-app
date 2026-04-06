@@ -156,6 +156,7 @@
 
 <script setup lang="ts">
   import { ref, computed, nextTick, onMounted } from 'vue'
+  import { useEscapeKey } from '../composables/useEscapeKey'
   import { format } from 'date-fns'
   import { useListsStore } from '../stores/lists.store'
   import type { TodoList } from '../types'
@@ -187,6 +188,12 @@
   function formatDate(iso: string) {
     return format(new Date(iso), 'dd MMM yyyy')
   }
+
+  useEscapeKey(() => {
+    if (showDeleteModal.value || showEditModal.value || showCreateModal.value) {
+      closeModals()
+    }
+  })
 
   function closeModals() {
     showCreateModal.value = false

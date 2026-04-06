@@ -53,6 +53,7 @@ export interface TodoItem {
   dueDate?: string | null
   amount?: string | null
   currency?: string | null
+  transactionType?: string | null
   url?: string | null
   colorOverride?: string | null
   commentCount?: number
@@ -71,6 +72,14 @@ export interface Completion {
   note?: string | null
   amount?: string | null
   currency?: string | null
+  transactionType?: string | null
+}
+
+export interface TransactionType {
+  id: string
+  userId: string
+  name: string
+  createdAt: string
 }
 
 export interface ItemComment {

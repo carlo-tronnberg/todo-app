@@ -5,7 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import ListDetailView from '../../../src/views/ListDetailView.vue'
 import type { TodoItem } from '../../../src/types'
 
-const { mockListsApi, mockItemsApi } = vi.hoisted(() => ({
+const { mockListsApi, mockItemsApi, mockTxTypesApi } = vi.hoisted(() => ({
   mockListsApi: {
     getAll: vi.fn(),
     getOne: vi.fn(),
@@ -27,10 +27,18 @@ const { mockListsApi, mockItemsApi } = vi.hoisted(() => ({
     addComment: vi.fn(),
     deleteComment: vi.fn(),
   },
+  mockTxTypesApi: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    remove: vi.fn(),
+  },
 }))
 
 vi.mock('../../../src/api/lists.api', () => ({ listsApi: mockListsApi }))
 vi.mock('../../../src/api/items.api', () => ({ itemsApi: mockItemsApi }))
+vi.mock('../../../src/api/transaction-types.api', () => ({
+  transactionTypesApi: mockTxTypesApi,
+}))
 
 function fakeItem(id: string, title = 'Task'): TodoItem {
   return {
