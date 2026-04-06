@@ -2,22 +2,16 @@
   <div id="app-root">
     <nav v-if="auth.isAuthenticated" class="nav-bar">
       <div class="nav-content">
-        <!-- Hamburger menu (left) -->
-        <div class="nav-left">
-          <button class="btn-icon hamburger" @click="toggleMenu">☰</button>
-          <router-link to="/" class="nav-brand">📋 Todo Tracker</router-link>
-        </div>
+        <router-link to="/" class="nav-brand">📋 Todo Tracker</router-link>
 
-        <!-- Main nav links (center) -->
         <div class="nav-links">
           <router-link to="/">📋 Lists</router-link>
           <router-link to="/calendar">📅 Calendar</router-link>
           <router-link to="/audit">📜 Log</router-link>
         </div>
 
-        <!-- Avatar + dropdown (right) -->
         <div class="nav-right">
-          <button class="avatar-btn" @click="toggleAvatar">
+          <button class="avatar-btn" @click="toggleMenu">
             <img
               v-if="auth.user?.avatarUrl"
               :src="auth.user.avatarUrl"
@@ -30,25 +24,16 @@
             }}</span>
           </button>
 
-          <!-- Avatar dropdown -->
-          <div v-if="avatarOpen" class="dropdown avatar-dropdown" @click="avatarOpen = false">
+          <div v-if="menuOpen" class="dropdown avatar-dropdown" @click="menuOpen = false">
             <div class="dropdown-header">
               {{ auth.user?.firstName || auth.user?.username || 'User' }}
             </div>
             <router-link to="/profile" class="dropdown-item">👤 Profile</router-link>
-            <button class="dropdown-item" @click="handleLogout">🚪 Logout</button>
+            <router-link to="/settings" class="dropdown-item">⚙ Settings</router-link>
+            <router-link to="/about" class="dropdown-item">ℹ️ About</router-link>
+            <button class="dropdown-item dropdown-logout" @click="handleLogout">🚪 Logout</button>
           </div>
         </div>
-      </div>
-
-      <!-- Hamburger dropdown -->
-      <div v-if="menuOpen" class="dropdown menu-dropdown" @click="menuOpen = false">
-        <router-link to="/settings" class="dropdown-item">⚙ Settings</router-link>
-        <button class="dropdown-item" @click.stop="toggleTheme">
-          {{ theme.isDark.value ? '☀️ Light mode' : '🌙 Dark mode' }}
-        </button>
-        <router-link to="/about" class="dropdown-item">ℹ️ About</router-link>
-        <router-link to="/changelog" class="dropdown-item">📝 Changelog</router-link>
       </div>
     </nav>
 
@@ -62,44 +47,28 @@
   import { ref, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from './stores/auth.store'
-  import { useTheme } from './composables/useTheme'
+  import './composables/useTheme' // Initialize theme on app load
 
   const auth = useAuthStore()
-  const theme = useTheme()
   const router = useRouter()
 
   const menuOpen = ref(false)
-  const avatarOpen = ref(false)
 
-  function closeDropdowns(e: MouseEvent) {
+  function closeMenu(e: MouseEvent) {
     const target = e.target as HTMLElement
-    if (menuOpen.value && !target.closest('.menu-dropdown') && !target.closest('.hamburger')) {
+    if (menuOpen.value && !target.closest('.avatar-dropdown') && !target.closest('.avatar-btn')) {
       menuOpen.value = false
-    }
-    if (avatarOpen.value && !target.closest('.avatar-dropdown') && !target.closest('.avatar-btn')) {
-      avatarOpen.value = false
     }
   }
 
   onMounted(() => {
     auth.fetchMe()
-    document.addEventListener('click', closeDropdowns)
+    document.addEventListener('click', closeMenu)
   })
-  onUnmounted(() => document.removeEventListener('click', closeDropdowns))
+  onUnmounted(() => document.removeEventListener('click', closeMenu))
 
   function toggleMenu() {
     menuOpen.value = !menuOpen.value
-    if (menuOpen.value) avatarOpen.value = false
-  }
-
-  function toggleAvatar() {
-    avatarOpen.value = !avatarOpen.value
-    if (avatarOpen.value) menuOpen.value = false
-  }
-
-  function toggleTheme() {
-    theme.toggleDark()
-    menuOpen.value = false
   }
 
   function handleLogout() {
@@ -136,22 +105,12 @@
     gap: 0.5rem 0.75rem;
     min-height: 48px;
   }
-
-  /* Left: hamburger + brand */
-  .nav-left {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
   .nav-brand {
     font-weight: 700;
     font-size: 1.05rem;
     white-space: nowrap;
     text-decoration: none;
     color: inherit;
-  }
-  .hamburger {
-    font-size: 1.3rem;
   }
 
   /* Center: nav links */
@@ -220,11 +179,6 @@
     padding: 0.35rem 0;
     z-index: 200;
   }
-  .menu-dropdown {
-    top: 100%;
-    left: 1rem;
-    margin-top: 0.25rem;
-  }
   .avatar-dropdown {
     top: 100%;
     right: 0;
@@ -254,26 +208,11 @@
   .dropdown-item:hover {
     background: var(--color-surface-sunken);
   }
-
-  .btn-icon {
-    background: transparent;
-    border: none;
-    color: white;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background 0.15s;
-    flex-shrink: 0;
+  .dropdown-logout {
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
   }
-  .btn-icon:hover {
-    background: rgba(255, 255, 255, 0.18);
-  }
-
   .main-content {
     max-width: 1200px;
     margin: 0 auto;
@@ -285,7 +224,7 @@
       gap: 0;
       padding: 0.25rem 0;
     }
-    .nav-left {
+    .nav-brand {
       order: 1;
     }
     .nav-right {

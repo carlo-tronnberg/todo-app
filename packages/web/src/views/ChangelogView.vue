@@ -15,12 +15,13 @@
     {
       version: 'v0.5.0',
       changes: [
-        'Redesigned nav bar with hamburger menu and avatar dropdown',
+        'Simplified nav: single avatar menu with Profile, Settings, About, Logout',
         'Google profile picture shown as avatar button (top-right)',
-        'Hamburger menu: Settings, Dark/Light mode, About, Changelog',
-        'Avatar dropdown: Profile, Logout',
-        'New About page describing app features',
+        'Dark/light theme toggle moved to Settings page',
+        'New About page with feature overview and changelog link',
         'New Changelog page with version history',
+        'Nav links wrap to second row on mobile',
+        'Dropdowns close on outside click',
         'App title links back to dashboard',
       ],
     },

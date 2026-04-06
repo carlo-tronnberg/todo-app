@@ -56,10 +56,15 @@
       </form>
     </section>
 
-    <!-- App info -->
+    <!-- Appearance -->
     <section class="card settings-section">
-      <h2>About</h2>
-      <p class="section-hint">Version {{ version }}</p>
+      <h2>Appearance</h2>
+      <div class="theme-toggle">
+        <span>Theme</span>
+        <button class="btn btn-secondary btn-sm" @click="theme.toggleDark()">
+          {{ theme.isDark.value ? '☀️ Switch to light mode' : '🌙 Switch to dark mode' }}
+        </button>
+      </div>
     </section>
   </div>
 </template>
@@ -68,10 +73,10 @@
   import { ref, onMounted } from 'vue'
   import { backupApi } from '../api/backup.api'
   import { transactionTypesApi } from '../api/transaction-types.api'
+  import { useTheme } from '../composables/useTheme'
   import type { TransactionType } from '../types'
 
-  declare const __APP_VERSION__: string
-  const version = __APP_VERSION__
+  const theme = useTheme()
 
   // Transaction types
   const txTypes = ref<TransactionType[]>([])
@@ -227,5 +232,11 @@
   .btn-sm {
     font-size: 0.78rem;
     padding: 0.2rem 0.65rem;
+  }
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9rem;
   }
 </style>

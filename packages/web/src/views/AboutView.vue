@@ -22,6 +22,9 @@
         <li>PWA — installable on mobile</li>
       </ul>
       <p class="version">Version {{ version }}</p>
+      <p class="changelog-link">
+        <router-link to="/changelog">View changelog →</router-link>
+      </p>
     </section>
   </div>
 </template>
@@ -57,5 +60,9 @@
     margin-top: 1.5rem;
     font-size: 0.82rem;
     color: var(--color-text-faint);
+  }
+  .changelog-link {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
   }
 </style>

@@ -129,7 +129,7 @@ describe('App.vue', () => {
     expect(wrapper.text()).toContain('Profile')
   })
 
-  it('hamburger menu contains settings and theme toggle', async () => {
+  it('avatar dropdown contains profile, settings, about and logout', async () => {
     const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
     mockAuthApi.me.mockResolvedValue(fakeUser)
     localStorage.setItem('auth_token', 'valid-token')
@@ -137,10 +137,11 @@ describe('App.vue', () => {
     setActivePinia(pinia)
     const { wrapper } = mountApp()
     await flushPromises()
-    await wrapper.find('.hamburger').trigger('click')
-    expect(wrapper.find('.menu-dropdown').exists()).toBe(true)
+    await wrapper.find('.avatar-btn').trigger('click')
+    expect(wrapper.find('.avatar-dropdown').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Profile')
     expect(wrapper.text()).toContain('Settings')
     expect(wrapper.text()).toContain('About')
-    expect(wrapper.text()).toContain('Changelog')
+    expect(wrapper.text()).toContain('Logout')
   })
 })

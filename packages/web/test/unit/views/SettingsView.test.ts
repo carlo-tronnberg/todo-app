@@ -139,8 +139,8 @@ describe('SettingsView', () => {
     expect(mockBackupApi.restore).not.toHaveBeenCalled()
   })
 
-  it('shows the version number', () => {
+  it('shows the theme toggle', () => {
     const { wrapper } = mountSettings()
-    expect(wrapper.text()).toContain('Version')
+    expect(wrapper.text()).toContain('Theme')
   })
 })
