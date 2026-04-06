@@ -13,10 +13,25 @@
 <script setup lang="ts">
   const entries = [
     {
+      version: 'v0.5.0',
+      changes: [
+        'Redesigned nav bar with hamburger menu and avatar dropdown',
+        'Google profile picture shown as avatar button (top-right)',
+        'Hamburger menu: Settings, Dark/Light mode, About, Changelog',
+        'Avatar dropdown: Profile, Logout',
+        'New About page describing app features',
+        'New Changelog page with version history',
+        'App title links back to dashboard',
+      ],
+    },
+    {
       version: 'v0.4.1',
       changes: [
         'Optional emoji icon for lists (shown in tabs, cards, headers)',
         'Fix scrollbar jump when switching list tabs',
+        'List tabs for quick switching between lists',
+        'Compact item create/edit form with wider modal',
+        'Case-insensitive sorting of transaction types',
       ],
     },
     {
