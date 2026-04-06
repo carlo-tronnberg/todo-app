@@ -37,7 +37,7 @@
 
     <!-- Undo confirmation modal -->
     <Teleport to="body">
-      <div v-if="undoTarget" class="modal-overlay" @keydown.escape="undoTarget = null">
+      <div v-if="undoTarget" class="modal-overlay">
         <div class="modal card" role="dialog" aria-modal="true" aria-label="Undo completion">
           <h2>Undo completion?</h2>
           <p>
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
+  import { useEscapeKey } from '../composables/useEscapeKey'
   import { useRoute, useRouter } from 'vue-router'
   import { format, parseISO } from 'date-fns'
   import { itemsApi } from '../api/items.api'
@@ -115,6 +116,10 @@
   function openUndoModal(completion: Completion) {
     undoTarget.value = completion
   }
+
+  useEscapeKey(() => {
+    if (undoTarget.value) undoTarget.value = null
+  })
 
   async function confirmUndo() {
     if (!undoTarget.value) return

@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-backdrop" @keydown.escape="$emit('cancel')">
+  <div class="modal-backdrop">
     <div class="modal card" role="dialog" aria-modal="true" aria-label="Complete Item">
       <h2>Complete Item</h2>
       <div class="form-group completion-amount">
@@ -67,6 +67,7 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
   import type { TransactionType } from '../types'
+  import { useEscapeKey } from '../composables/useEscapeKey'
 
   defineProps<{
     amount: string
@@ -76,7 +77,7 @@
     note: string
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     'update:amount': [value: string]
     'update:currency': [value: string]
     'update:transactionType': [value: string]
@@ -84,6 +85,8 @@
     confirm: []
     cancel: []
   }>()
+
+  useEscapeKey(() => emit('cancel'))
 
   const amountRef = ref<HTMLInputElement | null>(null)
 

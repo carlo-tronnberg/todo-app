@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-backdrop" @keydown.escape="$emit('close')">
+  <div class="modal-backdrop">
     <div
       class="modal card history-modal"
       role="dialog"
@@ -40,16 +40,19 @@
 <script setup lang="ts">
   import { format, parseISO } from 'date-fns'
   import type { Completion } from '../types'
+  import { useEscapeKey } from '../composables/useEscapeKey'
 
   defineProps<{
     completions: Completion[]
     loading: boolean
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     undo: [completion: Completion]
     close: []
   }>()
+
+  useEscapeKey(() => emit('close'))
 
   function formatDate(iso: string) {
     return format(parseISO(iso), 'dd MMM yyyy HH:mm')

@@ -42,7 +42,7 @@
     </div>
 
     <!-- Add/Edit Item Modal -->
-    <div v-if="showAddModal || editingItem" class="modal-backdrop" @keydown.escape="closeModal">
+    <div v-if="showAddModal || editingItem" class="modal-backdrop">
       <div
         class="modal card"
         role="dialog"
@@ -272,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
   const WEEKDAYS = [
     { bit: 2, label: 'Mon' },
@@ -389,6 +389,21 @@
   const historyItemId = ref<string | null>(null)
   const historyCompletions = ref<Completion[]>([])
   const historyLoading = ref(false)
+
+  // Global Escape key — close the topmost open modal
+  function handleEscape(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return
+    e.preventDefault()
+    if (historyItemId.value) {
+      historyItemId.value = null
+    } else if (completingItemId.value) {
+      completingItemId.value = null
+    } else if (showAddModal.value || editingItem.value) {
+      closeModal()
+    }
+  }
+  onMounted(() => document.addEventListener('keydown', handleEscape))
+  onUnmounted(() => document.removeEventListener('keydown', handleEscape))
 
   // Comments state
   const commentsOpen = ref<Set<string>>(new Set())

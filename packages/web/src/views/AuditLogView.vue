@@ -45,11 +45,7 @@
       </div>
     </div>
     <!-- Item detail modal -->
-    <div
-      v-if="detailItem || detailLoading || detailNotFound"
-      class="modal-backdrop"
-      @keydown.escape="closeDetail"
-    >
+    <div v-if="detailItem || detailLoading || detailNotFound" class="modal-backdrop">
       <div class="modal card" role="dialog" aria-modal="true" aria-label="Item Detail">
         <div v-if="detailLoading" class="loading">Loading…</div>
 
@@ -103,6 +99,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
+  import { useEscapeKey } from '../composables/useEscapeKey'
   import { format, parseISO } from 'date-fns'
   import { authApi } from '../api/auth.api'
   import { itemsApi } from '../api/items.api'
@@ -185,6 +182,12 @@
     detailItem.value = null
     detailNotFound.value = false
   }
+
+  useEscapeKey(() => {
+    if (detailItem.value || detailNotFound.value || detailLoading.value) {
+      closeDetail()
+    }
+  })
 </script>
 
 <style scoped>
