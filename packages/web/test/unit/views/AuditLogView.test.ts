@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AuditLogView from '../../../src/views/AuditLogView.vue'
 
-const { mockAuthApi } = vi.hoisted(() => ({
+const { mockAuthApi, mockItemsApi } = vi.hoisted(() => ({
   mockAuthApi: {
     login: vi.fn(),
     register: vi.fn(),
@@ -13,9 +13,14 @@ const { mockAuthApi } = vi.hoisted(() => ({
     changePassword: vi.fn(),
     getAuditLog: vi.fn(),
   },
+  mockItemsApi: {
+    getOne: vi.fn(),
+    getCompletions: vi.fn(),
+  },
 }))
 
 vi.mock('../../../src/api/auth.api', () => ({ authApi: mockAuthApi }))
+vi.mock('../../../src/api/items.api', () => ({ itemsApi: mockItemsApi }))
 
 function makeRouter() {
   return createRouter({
@@ -180,5 +185,60 @@ describe('AuditLogView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('todo_item')
+  })
+
+  it('shows detail hint icon for todo_item entries', async () => {
+    mockAuthApi.getAuditLog.mockResolvedValue([fakeEntry({ entityType: 'todo_item' })])
+    const { wrapper } = mountAuditLog()
+    await flushPromises()
+
+    expect(wrapper.find('.detail-hint').exists()).toBe(true)
+    expect(wrapper.find('tr.clickable').exists()).toBe(true)
+  })
+
+  it('opens detail modal when clicking a todo_item row', async () => {
+    const fakeItem = { id: 'x1', title: 'Test', listId: 'l1' }
+    mockAuthApi.getAuditLog.mockResolvedValue([fakeEntry({ entityType: 'todo_item' })])
+    mockItemsApi.getOne.mockResolvedValue(fakeItem)
+    mockItemsApi.getCompletions.mockResolvedValue([])
+    const { wrapper } = mountAuditLog()
+    await flushPromises()
+
+    await wrapper.find('tr.clickable').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Test')
+  })
+
+  it('shows not-found when item is deleted', async () => {
+    mockAuthApi.getAuditLog.mockResolvedValue([fakeEntry({ entityType: 'todo_item' })])
+    mockItemsApi.getOne.mockRejectedValue(new Error('404'))
+    mockItemsApi.getCompletions.mockRejectedValue(new Error('404'))
+    const { wrapper } = mountAuditLog()
+    await flushPromises()
+
+    await wrapper.find('tr.clickable').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
+    expect(wrapper.text()).toContain('not found')
+  })
+
+  it('closes detail modal on close button', async () => {
+    const fakeItem = { id: 'x1', title: 'Test', listId: 'l1' }
+    mockAuthApi.getAuditLog.mockResolvedValue([fakeEntry({ entityType: 'todo_item' })])
+    mockItemsApi.getOne.mockResolvedValue(fakeItem)
+    mockItemsApi.getCompletions.mockResolvedValue([])
+    const { wrapper } = mountAuditLog()
+    await flushPromises()
+
+    await wrapper.find('tr.clickable').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
+
+    await wrapper.find('.modal-backdrop .btn-secondary').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.modal-backdrop').exists()).toBe(false)
   })
 })
