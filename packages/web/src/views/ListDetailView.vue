@@ -61,67 +61,38 @@
             </select>
           </div>
 
-          <div class="form-group">
+          <div class="form-group compact">
             <label class="form-label">Title *</label>
             <input v-model="form.title" type="text" class="form-input" required autofocus />
           </div>
 
-          <div class="form-group">
-            <div class="form-label-row">
-              <label class="form-label">Description</label>
-              <button
-                v-if="form.description"
-                type="button"
-                class="form-clear-btn"
-                @click="form.description = ''"
-              >
-                ✕ Clear
-              </button>
-            </div>
-            <textarea v-model="form.description" class="form-input" rows="2" />
-          </div>
-
-          <div class="form-group">
+          <div class="form-group compact">
             <label class="form-label">URL</label>
             <input v-model="form.url" type="url" class="form-input" placeholder="https://..." />
           </div>
 
-          <!-- Start date | Start time -->
-          <div class="form-row">
+          <div class="form-group compact">
+            <label class="form-label">Description</label>
+            <textarea
+              v-model="form.description"
+              class="form-input"
+              rows="1"
+              placeholder="Optional"
+            />
+          </div>
+
+          <!-- Dates: Start date | Start time | Due date | End time -->
+          <div class="form-row form-row-4">
             <div class="form-col">
-              <div class="form-label-row">
-                <label class="form-label">Start date</label>
-                <button
-                  v-if="form.startDate"
-                  type="button"
-                  class="form-clear-btn"
-                  @click="form.startDate = ''"
-                >
-                  ✕ Clear
-                </button>
-              </div>
+              <label class="form-label">Start date</label>
               <input v-model="form.startDate" type="date" class="form-input" />
             </div>
             <div class="form-col">
               <label class="form-label">Start time</label>
               <input v-model="form.startTime" type="time" class="form-input" />
             </div>
-          </div>
-
-          <!-- Due date | End time -->
-          <div class="form-row">
             <div class="form-col">
-              <div class="form-label-row">
-                <label class="form-label">Due date</label>
-                <button
-                  v-if="form.dueDate"
-                  type="button"
-                  class="form-clear-btn"
-                  @click="form.dueDate = ''"
-                >
-                  ✕ Clear
-                </button>
-              </div>
+              <label class="form-label">Due date</label>
               <input v-model="form.dueDate" type="date" class="form-input" />
             </div>
             <div class="form-col">
@@ -130,9 +101,10 @@
             </div>
           </div>
 
-          <!-- Amount | Currency -->
+          <!-- Amount | Currency | Type -->
+          <!-- Amount | Currency | Type -->
           <div class="form-row">
-            <div class="form-col">
+            <div class="form-col" style="flex: 2">
               <label class="form-label">Amount</label>
               <input
                 v-model="form.amount"
@@ -143,10 +115,10 @@
                 placeholder="0.00"
               />
             </div>
-            <div class="form-col">
+            <div class="form-col" style="flex: 0 0 5rem">
               <label class="form-label">Currency</label>
               <select v-model="form.currency" class="form-input">
-                <option value="">— None —</option>
+                <option value="">—</option>
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="SEK">SEK</option>
@@ -154,7 +126,7 @@
                 <option value="HUF">HUF</option>
               </select>
             </div>
-            <div class="form-col">
+            <div class="form-col" style="flex: 3">
               <label class="form-label">Type</label>
               <select v-model="form.transactionType" class="form-input">
                 <option value="">—</option>
@@ -165,35 +137,74 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Recurrence</label>
-            <select v-model="form.recurrenceType" class="form-input">
-              <option value="none">No recurrence</option>
-              <option value="daily">Daily</option>
-              <option value="weekly_on_day">Weekly – on a given day</option>
-              <option value="weekly">Weekly – multiple days (bitmask)</option>
-              <option value="monthly_on_day">Monthly on day</option>
-              <option value="custom_days">Every N days</option>
-              <option value="yearly">Yearly (same date every year)</option>
-            </select>
+          <!-- Recurrence row: type + interval on same line -->
+          <div class="form-row">
+            <div class="form-col" style="flex: 2">
+              <label class="form-label">Recurrence</label>
+              <select v-model="form.recurrenceType" class="form-input">
+                <option value="none">No recurrence</option>
+                <option value="daily">Daily</option>
+                <option value="weekly_on_day">Weekly – on a day</option>
+                <option value="weekly">Weekly – multiple days</option>
+                <option value="monthly_on_day">Monthly on day</option>
+                <option value="custom_days">Every N days</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div
+              v-if="form.recurrenceType === 'custom_days'"
+              class="form-col"
+              style="flex: 0 0 5rem"
+            >
+              <label class="form-label">Days</label>
+              <input v-model.number="form.intervalDays" type="number" min="1" class="form-input" />
+            </div>
+            <div
+              v-if="
+                ['weekly_on_day', 'weekly', 'monthly_on_day', 'daily', 'yearly'].includes(
+                  form.recurrenceType
+                )
+              "
+              class="form-col"
+              style="flex: 0 0 5rem"
+            >
+              <label class="form-label">Every</label>
+              <input
+                v-model.number="form.recurrenceInterval"
+                type="number"
+                min="1"
+                class="form-input"
+              />
+            </div>
+            <div
+              v-if="
+                ['weekly_on_day', 'weekly', 'monthly_on_day', 'daily', 'yearly'].includes(
+                  form.recurrenceType
+                )
+              "
+              class="form-col interval-unit-col"
+            >
+              <label class="form-label">&nbsp;</label>
+              <span class="interval-unit">{{ recurrenceIntervalUnit }}</span>
+            </div>
           </div>
 
-          <!-- Weekly on a given day: single weekday selector -->
-          <div v-if="form.recurrenceType === 'weekly_on_day'" class="form-group">
-            <label class="form-label">Weekday</label>
-            <select v-model.number="form.weekdayMask" class="form-input">
-              <option :value="2">Monday</option>
-              <option :value="4">Tuesday</option>
-              <option :value="8">Wednesday</option>
-              <option :value="16">Thursday</option>
-              <option :value="32">Friday</option>
-              <option :value="64">Saturday</option>
-              <option :value="1">Sunday</option>
-            </select>
+          <!-- Recurrence details: weekday, day of month -->
+          <div v-if="form.recurrenceType === 'weekly_on_day'" class="form-row">
+            <div class="form-col">
+              <label class="form-label">Weekday</label>
+              <select v-model.number="form.weekdayMask" class="form-input">
+                <option :value="2">Monday</option>
+                <option :value="4">Tuesday</option>
+                <option :value="8">Wednesday</option>
+                <option :value="16">Thursday</option>
+                <option :value="32">Friday</option>
+                <option :value="64">Saturday</option>
+                <option :value="1">Sunday</option>
+              </select>
+            </div>
           </div>
-
-          <!-- Weekly multiple days: checkbox row -->
-          <div v-if="form.recurrenceType === 'weekly'" class="form-group">
+          <div v-if="form.recurrenceType === 'weekly'" class="form-group compact">
             <label class="form-label">Days of week</label>
             <div class="weekday-checkboxes">
               <label v-for="day in WEEKDAYS" :key="day.bit" class="weekday-check">
@@ -202,40 +213,16 @@
               </label>
             </div>
           </div>
-
-          <div v-if="form.recurrenceType === 'monthly_on_day'" class="form-group">
-            <label class="form-label">Day of month (1–31)</label>
-            <input
-              v-model.number="form.dayOfMonth"
-              type="number"
-              min="1"
-              max="31"
-              class="form-input"
-            />
-          </div>
-          <div v-if="form.recurrenceType === 'custom_days'" class="form-group">
-            <label class="form-label">Interval (days)</label>
-            <input v-model.number="form.intervalDays" type="number" min="1" class="form-input" />
-          </div>
-
-          <div
-            v-if="
-              ['weekly_on_day', 'weekly', 'monthly_on_day', 'daily', 'yearly'].includes(
-                form.recurrenceType
-              )
-            "
-            class="form-group"
-          >
-            <label class="form-label">Repeat every</label>
-            <div class="form-row">
+          <div v-if="form.recurrenceType === 'monthly_on_day'" class="form-row">
+            <div class="form-col" style="flex: 0 0 6rem">
+              <label class="form-label">Day (1–31)</label>
               <input
-                v-model.number="form.recurrenceInterval"
+                v-model.number="form.dayOfMonth"
                 type="number"
                 min="1"
+                max="31"
                 class="form-input"
-                style="max-width: 5rem"
               />
-              <span class="interval-unit">{{ recurrenceIntervalUnit }}</span>
             </div>
           </div>
 
@@ -821,13 +808,13 @@
   }
   .modal {
     width: 100%;
-    max-width: 520px;
+    max-width: 640px;
     max-height: 90vh;
     overflow-y: auto;
   }
   .modal h2 {
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--color-text);
   }
@@ -840,10 +827,26 @@
 
   /* Two-column form row — intentionally NOT using .form-group to avoid global flex-direction:column */
   .form-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .form-row-4 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .compact {
+    margin-bottom: 0.4rem;
+  }
+  .interval-unit-col {
+    flex: 0 0 auto !important;
+    justify-content: flex-end;
+  }
+  .interval-unit {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 2.2;
   }
 
   @media (max-width: 600px) {
@@ -853,19 +856,25 @@
     }
     .modal h2 {
       font-size: 1rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
     }
     .modal .form-group {
-      margin-bottom: 0.5rem;
-      gap: 0.2rem;
+      margin-bottom: 0.35rem;
+      gap: 0.15rem;
     }
     .modal .form-input {
-      padding: 0.35rem 0.5rem;
-      font-size: 0.875rem;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.82rem;
+    }
+    .modal .form-label {
+      font-size: 0.75rem;
     }
     .form-row {
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
+      gap: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+    .form-row-4 {
+      grid-template-columns: 1fr 1fr;
     }
     .modal-actions {
       margin-top: 0.5rem;
@@ -874,7 +883,9 @@
   .form-col {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 0;
   }
 
   /* Weekday checkboxes */

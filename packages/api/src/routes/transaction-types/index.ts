@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, asc } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { transactionTypes } from '../../db'
 
 const DEFAULT_TYPES = ['Autogiro', 'Bank card', 'Bank transfer', 'Manual', 'Swish']
@@ -13,7 +13,7 @@ export const transactionTypeRoutes: FastifyPluginAsync = async (app) => {
       .select()
       .from(transactionTypes)
       .where(eq(transactionTypes.userId, request.user.sub))
-      .orderBy(asc(transactionTypes.name))
+      .orderBy(sql`lower(${transactionTypes.name})`)
 
     // Seed defaults on first access
     if (types.length === 0) {
