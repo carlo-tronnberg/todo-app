@@ -4,7 +4,7 @@
       <div class="nav-content">
         <!-- Hamburger menu (left) -->
         <div class="nav-left">
-          <button class="btn-icon hamburger" @click="menuOpen = !menuOpen">☰</button>
+          <button class="btn-icon hamburger" @click="toggleMenu">☰</button>
           <router-link to="/" class="nav-brand">📋 Todo Tracker</router-link>
         </div>
 
@@ -17,7 +17,7 @@
 
         <!-- Avatar + dropdown (right) -->
         <div class="nav-right">
-          <button class="avatar-btn" @click="avatarOpen = !avatarOpen">
+          <button class="avatar-btn" @click="toggleAvatar">
             <img
               v-if="auth.user?.avatarUrl"
               :src="auth.user.avatarUrl"
@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from './stores/auth.store'
   import { useTheme } from './composables/useTheme'
@@ -71,9 +71,31 @@
   const menuOpen = ref(false)
   const avatarOpen = ref(false)
 
+  function closeDropdowns(e: MouseEvent) {
+    const target = e.target as HTMLElement
+    if (menuOpen.value && !target.closest('.menu-dropdown') && !target.closest('.hamburger')) {
+      menuOpen.value = false
+    }
+    if (avatarOpen.value && !target.closest('.avatar-dropdown') && !target.closest('.avatar-btn')) {
+      avatarOpen.value = false
+    }
+  }
+
   onMounted(() => {
     auth.fetchMe()
+    document.addEventListener('click', closeDropdowns)
   })
+  onUnmounted(() => document.removeEventListener('click', closeDropdowns))
+
+  function toggleMenu() {
+    menuOpen.value = !menuOpen.value
+    if (menuOpen.value) avatarOpen.value = false
+  }
+
+  function toggleAvatar() {
+    avatarOpen.value = !avatarOpen.value
+    if (avatarOpen.value) menuOpen.value = false
+  }
 
   function toggleTheme() {
     theme.toggleDark()
