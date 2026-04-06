@@ -5,7 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import ListDetailView from '../../../src/views/ListDetailView.vue'
 import type { TodoItem } from '../../../src/types'
 
-const { mockListsApi, mockItemsApi, mockTxTypesApi } = vi.hoisted(() => ({
+const { mockListsApi, mockItemsApi, mockTxTypesApi, mockSharesApi } = vi.hoisted(() => ({
   mockListsApi: {
     getAll: vi.fn(),
     getOne: vi.fn(),
@@ -32,6 +32,11 @@ const { mockListsApi, mockItemsApi, mockTxTypesApi } = vi.hoisted(() => ({
     create: vi.fn(),
     remove: vi.fn(),
   },
+  mockSharesApi: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    remove: vi.fn(),
+  },
 }))
 
 vi.mock('../../../src/api/lists.api', () => ({ listsApi: mockListsApi }))
@@ -39,6 +44,7 @@ vi.mock('../../../src/api/items.api', () => ({ itemsApi: mockItemsApi }))
 vi.mock('../../../src/api/transaction-types.api', () => ({
   transactionTypesApi: mockTxTypesApi,
 }))
+vi.mock('../../../src/api/shares.api', () => ({ sharesApi: mockSharesApi }))
 
 function fakeItem(id: string, title = 'Task'): TodoItem {
   return {
@@ -327,11 +333,11 @@ describe('ListDetailView', () => {
     const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
     await flushPromises()
 
-    await wrapper.find('button.btn-primary').trigger('click')
+    await wrapper.find('button.btn-primary.btn-sm').trigger('click')
     expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
 
-    // Find and click the Cancel button in the modal
-    const cancelBtn = wrapper.find('button.btn-secondary')
+    // Find and click the Cancel button inside the modal
+    const cancelBtn = wrapper.find('.modal-backdrop button.btn-secondary')
     await cancelBtn.trigger('click')
     await flushPromises()
 
@@ -733,8 +739,8 @@ describe('ListDetailView', () => {
       // Modal should auto-open for editItem=i1
       expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
 
-      // Click Cancel → should navigate back (autoBack=true)
-      const cancelBtn = wrapper.find('button.btn-secondary')
+      // Click Cancel inside the modal → should navigate back (autoBack=true)
+      const cancelBtn = wrapper.find('.modal-backdrop button.btn-secondary')
       await cancelBtn.trigger('click')
       await flushPromises()
 

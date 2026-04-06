@@ -3,6 +3,8 @@ import {
   Database,
   todoLists,
   todoItems,
+  listShares,
+  users,
   recurrenceRules,
   completions,
   itemComments,
@@ -54,12 +56,18 @@ interface BackupItem {
   comments: BackupComment[]
 }
 
+interface BackupShare {
+  email: string
+  role: string
+}
+
 interface BackupList {
   title: string
   description: string | null
   defaultCurrency: string | null
   icon: string | null
   items: BackupItem[]
+  shares?: BackupShare[]
 }
 
 interface BackupAuditLog {
@@ -109,7 +117,7 @@ export class BackupService {
     const itemIds = items.map((i) => i.id)
     const ruleIds = items.filter((i) => i.recurrenceRuleId).map((i) => i.recurrenceRuleId!)
 
-    const [rules, comps, comments] = await Promise.all([
+    const [rules, comps, comments, shares] = await Promise.all([
       ruleIds.length > 0
         ? this.db.select().from(recurrenceRules).where(inArray(recurrenceRules.id, ruleIds))
         : [],
@@ -119,6 +127,11 @@ export class BackupService {
       itemIds.length > 0
         ? this.db.select().from(itemComments).where(inArray(itemComments.itemId, itemIds))
         : [],
+      this.db
+        .select({ listId: listShares.listId, email: users.email, role: listShares.role })
+        .from(listShares)
+        .innerJoin(users, eq(listShares.sharedWithUserId, users.id))
+        .where(inArray(listShares.listId, listIds)),
     ])
 
     const rulesById = new Map(rules.map((r) => [r.id, r]))
@@ -144,6 +157,13 @@ export class BackupService {
       itemsByList.set(item.listId, arr)
     }
 
+    const sharesByList = new Map<string, BackupShare[]>()
+    for (const s of shares) {
+      const arr = sharesByList.get(s.listId) ?? []
+      arr.push({ email: s.email, role: s.role })
+      sharesByList.set(s.listId, arr)
+    }
+
     return {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -152,6 +172,7 @@ export class BackupService {
         description: list.description,
         defaultCurrency: list.defaultCurrency,
         icon: list.icon,
+        shares: sharesByList.get(list.id) ?? [],
         items: (itemsByList.get(list.id) ?? []).map((item) => ({
           title: item.title,
           description: item.description,
@@ -292,6 +313,28 @@ export class BackupService {
                 updatedAt: new Date(c.createdAt),
               }))
             )
+          }
+        }
+
+        // Restore shares by resolving emails to user IDs
+        if (listData.shares?.length) {
+          for (const s of listData.shares) {
+            const [target] = await tx
+              .select({ id: users.id })
+              .from(users)
+              .where(eq(users.email, s.email))
+              .limit(1)
+            if (target && target.id !== userId) {
+              await tx
+                .insert(listShares)
+                .values({
+                  listId: list.id,
+                  sharedWithUserId: target.id,
+                  sharedByUserId: userId,
+                  role: s.role ?? 'editor',
+                })
+                .onConflictDoNothing()
+            }
           }
         }
       }

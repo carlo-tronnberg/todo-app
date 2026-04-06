@@ -1,5 +1,5 @@
 import { eq, and } from 'drizzle-orm'
-import { Database, todoItems, recurrenceRules, todoLists, completions } from '../db'
+import { Database, todoItems, recurrenceRules, todoLists, completions, listShares } from '../db'
 import { RecurrenceRuleInput } from '../types'
 import { parseDateOrNull } from '../utils/date'
 import { RecurrenceService } from './recurrence.service'
@@ -43,12 +43,27 @@ export class ItemsService {
   constructor(private db: Database) {}
 
   async findById(id: string, userId: string) {
-    const [item] = await this.db
+    // Try owned first
+    let [item] = await this.db
       .select()
       .from(todoItems)
       .innerJoin(todoLists, eq(todoItems.listId, todoLists.id))
       .where(and(eq(todoItems.id, id), eq(todoLists.userId, userId)))
       .limit(1)
+
+    // Try shared access
+    if (!item) {
+      const rows = await this.db
+        .select()
+        .from(todoItems)
+        .innerJoin(todoLists, eq(todoItems.listId, todoLists.id))
+        .innerJoin(listShares, eq(listShares.listId, todoLists.id))
+        .where(and(eq(todoItems.id, id), eq(listShares.sharedWithUserId, userId)))
+        .limit(1)
+      if (rows.length > 0) {
+        item = { todo_items: rows[0].todo_items, todo_lists: rows[0].todo_lists }
+      }
+    }
 
     if (!item) return null
 
