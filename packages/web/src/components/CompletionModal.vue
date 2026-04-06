@@ -4,7 +4,7 @@
       <h2>Complete Item</h2>
       <div class="form-group completion-amount">
         <label class="form-label">Amount</label>
-        <div class="form-row">
+        <div class="amount-row">
           <input
             ref="amountRef"
             :value="amount"
@@ -13,13 +13,14 @@
             min="0"
             class="form-input"
             placeholder="0.00"
+            style="max-width: 8rem"
             @input="$emit('update:amount', ($event.target as HTMLInputElement).value)"
             @keydown.enter.prevent="$emit('confirm')"
           />
           <select
             :value="currency"
             class="form-input"
-            style="max-width: 6rem"
+            style="max-width: 5.5rem"
             @change="$emit('update:currency', ($event.target as HTMLSelectElement).value)"
           >
             <option value="">—</option>
@@ -90,3 +91,11 @@
     amountRef.value?.focus()
   })
 </script>
+
+<style scoped>
+  .amount-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+</style>
