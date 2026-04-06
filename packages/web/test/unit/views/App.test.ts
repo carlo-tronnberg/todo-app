@@ -144,4 +144,37 @@ describe('App.vue', () => {
     expect(wrapper.text()).toContain('About')
     expect(wrapper.text()).toContain('Logout')
   })
+
+  it('closes dropdown when clicking outside', async () => {
+    const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
+    mockAuthApi.me.mockResolvedValue(fakeUser)
+    localStorage.setItem('auth_token', 'valid-token')
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const { wrapper } = mountApp()
+    await flushPromises()
+    // Open dropdown
+    await wrapper.find('.avatar-btn').trigger('click')
+    expect(wrapper.find('.avatar-dropdown').exists()).toBe(true)
+    // Click outside — simulate clicking on the body
+    document.body.click()
+    await flushPromises()
+    expect(wrapper.find('.avatar-dropdown').exists()).toBe(false)
+  })
+
+  it('logout clears auth and hides nav', async () => {
+    const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
+    mockAuthApi.me.mockResolvedValue(fakeUser)
+    localStorage.setItem('auth_token', 'valid-token')
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const { wrapper } = mountApp()
+    await flushPromises()
+    // Open dropdown and click logout
+    await wrapper.find('.avatar-btn').trigger('click')
+    const logoutBtn = wrapper.findAll('.dropdown-item').find((b) => b.text().includes('Logout'))
+    await logoutBtn!.trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.nav-bar').exists()).toBe(false)
+  })
 })

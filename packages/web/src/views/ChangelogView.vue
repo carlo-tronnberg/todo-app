@@ -13,6 +13,18 @@
 <script setup lang="ts">
   const entries = [
     {
+      version: 'v0.6.0',
+      changes: [
+        'List sharing: invite users by email to collaborate on lists',
+        'Shared user avatars displayed in list header',
+        'Share management modal (add/remove collaborators)',
+        'Shared lists appear on dashboard alongside owned lists',
+        'Shared users can view and edit items, complete, and comment',
+        'Add Item button moved below header, closer to items',
+        'Backup/restore includes list shares (by email)',
+      ],
+    },
+    {
       version: 'v0.5.0',
       changes: [
         'Simplified nav: single avatar menu with Profile, Settings, About, Logout',

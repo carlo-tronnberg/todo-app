@@ -1,5 +1,13 @@
 import { eq, and, inArray, gte, lte, sql } from 'drizzle-orm'
-import { Database, todoLists, todoItems, recurrenceRules, completions, itemComments } from '../db'
+import {
+  Database,
+  todoLists,
+  todoItems,
+  recurrenceRules,
+  completions,
+  itemComments,
+  listShares,
+} from '../db'
 
 export interface CreateListInput {
   title: string
@@ -19,7 +27,25 @@ export class ListsService {
   constructor(private db: Database) {}
 
   async findAll(userId: string) {
-    const lists = await this.db.select().from(todoLists).where(eq(todoLists.userId, userId))
+    // Get owned lists
+    const ownedLists = await this.db.select().from(todoLists).where(eq(todoLists.userId, userId))
+
+    // Get shared lists
+    const sharedRows = await this.db
+      .select({ listId: listShares.listId })
+      .from(listShares)
+      .where(eq(listShares.sharedWithUserId, userId))
+    const sharedListIds = sharedRows.map((r) => r.listId)
+
+    let sharedLists: typeof ownedLists = []
+    if (sharedListIds.length > 0) {
+      sharedLists = await this.db
+        .select()
+        .from(todoLists)
+        .where(inArray(todoLists.id, sharedListIds))
+    }
+
+    const lists = [...ownedLists, ...sharedLists]
     if (lists.length === 0) return []
 
     const listIds = lists.map((l) => l.id)
@@ -123,12 +149,23 @@ export class ListsService {
   }
 
   async findById(id: string, userId: string) {
-    const [list] = await this.db
+    // Check ownership first
+    const [owned] = await this.db
       .select()
       .from(todoLists)
       .where(and(eq(todoLists.id, id), eq(todoLists.userId, userId)))
       .limit(1)
+    if (owned) return owned
 
+    // Check shared access
+    const [shared] = await this.db
+      .select({ listId: listShares.listId })
+      .from(listShares)
+      .where(and(eq(listShares.listId, id), eq(listShares.sharedWithUserId, userId)))
+      .limit(1)
+    if (!shared) return null
+
+    const [list] = await this.db.select().from(todoLists).where(eq(todoLists.id, id)).limit(1)
     return list ?? null
   }
 

@@ -4,14 +4,22 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SettingsView from '../../../src/views/SettingsView.vue'
 
-const { mockBackupApi } = vi.hoisted(() => ({
+const { mockBackupApi, mockTxTypesApi } = vi.hoisted(() => ({
   mockBackupApi: {
     download: vi.fn(),
     restore: vi.fn(),
   },
+  mockTxTypesApi: {
+    getAll: vi.fn().mockResolvedValue([{ id: '1', name: 'Autogiro', userId: 'u1', createdAt: '' }]),
+    create: vi.fn().mockResolvedValue({ id: '2', name: 'Swish', userId: 'u1', createdAt: '' }),
+    remove: vi.fn().mockResolvedValue(undefined),
+  },
 }))
 
 vi.mock('../../../src/api/backup.api', () => ({ backupApi: mockBackupApi }))
+vi.mock('../../../src/api/transaction-types.api', () => ({
+  transactionTypesApi: mockTxTypesApi,
+}))
 
 async function makeRouter() {
   const router = createRouter({
@@ -142,5 +150,33 @@ describe('SettingsView', () => {
   it('shows the theme toggle', () => {
     const { wrapper } = mountSettings()
     expect(wrapper.text()).toContain('Theme')
+  })
+
+  it('loads transaction types on mount', async () => {
+    const { wrapper } = mountSettings()
+    await flushPromises()
+    expect(mockTxTypesApi.getAll).toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Autogiro')
+  })
+
+  it('adds a transaction type', async () => {
+    const { wrapper } = mountSettings()
+    await flushPromises()
+    await (wrapper.vm as unknown as { addTxType: () => Promise<void> }).addTxType()
+    // addTxType requires newTxName to be set — call directly via vm
+    ;(wrapper.vm as unknown as { newTxName: string }).newTxName = 'Swish'
+    await (wrapper.vm as unknown as { addTxType: () => Promise<void> }).addTxType()
+    await flushPromises()
+    expect(mockTxTypesApi.create).toHaveBeenCalledWith('Swish')
+  })
+
+  it('removes a transaction type', async () => {
+    const { wrapper } = mountSettings()
+    await flushPromises()
+    await (wrapper.vm as unknown as { removeTxType: (id: string) => Promise<void> }).removeTxType(
+      '1'
+    )
+    await flushPromises()
+    expect(mockTxTypesApi.remove).toHaveBeenCalledWith('1')
   })
 })

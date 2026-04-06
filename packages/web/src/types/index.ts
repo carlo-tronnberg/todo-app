@@ -93,6 +93,20 @@ export interface ItemComment {
   updatedAt: string
 }
 
+export interface ListShare {
+  id: string
+  role: string
+  createdAt: string
+  user: {
+    id: string
+    email: string
+    username: string
+    firstName: string | null
+    lastName: string | null
+    avatarUrl: string | null
+  }
+}
+
 export interface AuditLog {
   id: string
   userId: string

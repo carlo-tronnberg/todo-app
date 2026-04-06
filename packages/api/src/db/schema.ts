@@ -142,6 +142,23 @@ export const itemComments = pgTable('item_comments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+// ── list_shares ───────────────────────────────────────────────────────────────
+
+export const listShares = pgTable('list_shares', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listId: uuid('list_id')
+    .notNull()
+    .references(() => todoLists.id, { onDelete: 'cascade' }),
+  sharedWithUserId: uuid('shared_with_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  sharedByUserId: uuid('shared_by_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 20 }).notNull().default('editor'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 // ── audit_logs ────────────────────────────────────────────────────────────────
 
 export const auditLogs = pgTable('audit_logs', {

@@ -14,12 +14,45 @@
     </div>
 
     <div class="list-header">
-      <div>
+      <div class="list-header-left">
         <router-link :to="backTo" class="back-link">← Back</router-link>
         <h1 v-if="list">{{ list.icon ? `${list.icon} ` : '' }}{{ list.title }}</h1>
         <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
       </div>
-      <button class="btn btn-primary" @click="openAddModal">+ Add Item</button>
+      <div class="list-header-right">
+        <div class="shared-avatars">
+          <img
+            v-for="share in listShares"
+            :key="share.id"
+            :src="share.user.avatarUrl || ''"
+            :alt="share.user.firstName || share.user.username"
+            :title="
+              share.user.firstName
+                ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+                : share.user.email
+            "
+            class="shared-avatar"
+            referrerpolicy="no-referrer"
+            @error="($event.target as HTMLImageElement).style.display = 'none'"
+          />
+          <span
+            v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
+            :key="'f' + share.id"
+            class="shared-avatar shared-avatar-fallback"
+            :title="share.user.email"
+          >
+            {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
+          </span>
+        </div>
+        <button class="btn btn-secondary btn-sm" @click="showShareModal = true">👥 Share</button>
+      </div>
+    </div>
+
+    <div class="list-actions">
+      <div v-if="dueThisMonthCount > 0" class="due-this-month">
+        {{ dueThisMonthCount }} due this month
+      </div>
+      <button class="btn btn-primary btn-sm" @click="openAddModal">+ Add Item</button>
     </div>
 
     <div v-if="itemsStore.loading" class="loading">Loading…</div>
@@ -29,9 +62,6 @@
     </div>
 
     <div v-else class="items-list">
-      <div v-if="dueThisMonthCount > 0" class="due-this-month">
-        {{ dueThisMonthCount }} due this month
-      </div>
       <div v-for="item in sortedItems" :key="item.id" class="item-wrapper">
         <TodoItemComponent
           :item="item"
@@ -268,6 +298,14 @@
       @undo="undoCompletion"
       @close="historyItemId = null"
     />
+
+    <ShareManageModal
+      v-if="showShareModal"
+      :shares="listShares"
+      @add="handleAddShare"
+      @remove="handleRemoveShare"
+      @close="showShareModal = false"
+    />
   </div>
 </template>
 
@@ -357,8 +395,10 @@
   import TodoItemComponent from '../components/todo/TodoItem.vue'
   import CompletionModal from '../components/CompletionModal.vue'
   import HistoryModal from '../components/HistoryModal.vue'
+  import ShareManageModal from '../components/ShareManageModal.vue'
   import CommentsSection from '../components/CommentsSection.vue'
-  import type { TodoItem, TodoList, ItemComment, Completion } from '../types'
+  import { sharesApi } from '../api/shares.api'
+  import type { TodoItem, TodoList, ItemComment, Completion, ListShare } from '../types'
   import { computeUrgencyLevel } from '../composables/useUrgency'
 
   const route = useRoute()
@@ -393,11 +433,17 @@
   const historyCompletions = ref<Completion[]>([])
   const historyLoading = ref(false)
 
+  // Sharing state
+  const listShares = ref<ListShare[]>([])
+  const showShareModal = ref(false)
+
   // Global Escape key — close the topmost open modal
   function handleEscape(e: KeyboardEvent) {
     if (e.key !== 'Escape') return
     e.preventDefault()
-    if (historyItemId.value) {
+    if (showShareModal.value) {
+      showShareModal.value = false
+    } else if (historyItemId.value) {
       historyItemId.value = null
     } else if (completingItemId.value) {
       completingItemId.value = null
@@ -521,6 +567,7 @@
       itemsStore.fetchItems(listId),
       listsStore.fetchLists(),
       transactionTypesApi.getAll().then((t) => (transactionTypesList.value = t)),
+      sharesApi.getAll(listId).then((s) => (listShares.value = s)),
     ])
 
     // Open edit modal for a specific item (from unscheduled calendar click)
@@ -653,6 +700,21 @@
     historyCompletions.value = historyCompletions.value.filter((c) => c.id !== completion.id)
     // Refresh items to update due date if it was reverted
     await itemsStore.fetchItems(listId)
+  }
+
+  async function handleAddShare(email: string) {
+    try {
+      const share = await sharesApi.create(listId, email)
+      listShares.value = [...listShares.value, share]
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      alert(msg ?? 'Failed to share list')
+    }
+  }
+
+  async function handleRemoveShare(shareId: string) {
+    await sharesApi.remove(listId, shareId)
+    listShares.value = listShares.value.filter((s) => s.id !== shareId)
   }
 
   async function handleArchive(itemId: string) {
@@ -806,8 +868,44 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     gap: 1rem;
+  }
+  .list-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .shared-avatars {
+    display: flex;
+    gap: -0.25rem;
+  }
+  .shared-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-surface);
+    margin-left: -4px;
+  }
+  .shared-avatar:first-child {
+    margin-left: 0;
+  }
+  .shared-avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .list-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
   }
   .back-link {
     font-size: 0.85rem;
