@@ -71,7 +71,7 @@ describe('App.vue', () => {
     expect(mockAuthApi.me).toHaveBeenCalled()
   })
 
-  it('shows username in nav when authenticated (no firstName)', async () => {
+  it('shows avatar fallback with first letter of username', async () => {
     const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
     mockAuthApi.me.mockResolvedValue(fakeUser)
     localStorage.setItem('auth_token', 'valid-token')
@@ -79,15 +79,16 @@ describe('App.vue', () => {
     setActivePinia(pinia)
     const { wrapper } = mountApp()
     await flushPromises()
-    expect(wrapper.text()).toContain('alice')
+    expect(wrapper.find('.avatar-fallback').text()).toBe('A')
   })
 
-  it('shows first name instead of username when firstName is set', async () => {
+  it('shows avatar image when avatarUrl is set', async () => {
     const fakeUser = {
       id: 'u1',
       email: 'a@b.com',
       username: 'alice',
       firstName: 'Alice',
+      avatarUrl: 'https://example.com/photo.jpg',
       createdAt: '2024-01-01',
     }
     mockAuthApi.me.mockResolvedValue(fakeUser)
@@ -96,7 +97,7 @@ describe('App.vue', () => {
     setActivePinia(pinia)
     const { wrapper } = mountApp()
     await flushPromises()
-    expect(wrapper.find('.nav-username').text()).toContain('Alice')
+    expect(wrapper.find('.avatar-img').attributes('src')).toBe('https://example.com/photo.jpg')
   })
 
   it('nav links include icons for Lists, Calendar, and Log', async () => {
@@ -113,7 +114,7 @@ describe('App.vue', () => {
     expect(navText).toContain('Log')
   })
 
-  it('logout button calls logout', async () => {
+  it('avatar dropdown shows logout and profile', async () => {
     const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
     mockAuthApi.me.mockResolvedValue(fakeUser)
     localStorage.setItem('auth_token', 'valid-token')
@@ -121,13 +122,14 @@ describe('App.vue', () => {
     setActivePinia(pinia)
     const { wrapper } = mountApp()
     await flushPromises()
-    await wrapper.find('.btn-ghost').trigger('click')
-    // After logout, nav should be hidden
-    await flushPromises()
-    expect(wrapper.find('.nav-bar').exists()).toBe(false)
+    // Open avatar dropdown
+    await wrapper.find('.avatar-btn').trigger('click')
+    expect(wrapper.find('.avatar-dropdown').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Logout')
+    expect(wrapper.text()).toContain('Profile')
   })
 
-  it('theme toggle button is visible when authenticated', async () => {
+  it('hamburger menu contains settings and theme toggle', async () => {
     const fakeUser = { id: 'u1', email: 'a@b.com', username: 'alice', createdAt: '2024-01-01' }
     mockAuthApi.me.mockResolvedValue(fakeUser)
     localStorage.setItem('auth_token', 'valid-token')
@@ -135,9 +137,10 @@ describe('App.vue', () => {
     setActivePinia(pinia)
     const { wrapper } = mountApp()
     await flushPromises()
-    expect(wrapper.find('.btn-icon').exists()).toBe(true)
-    // Toggle theme
-    await wrapper.find('.btn-icon').trigger('click')
-    expect(wrapper.find('.btn-icon').exists()).toBe(true)
+    await wrapper.find('.hamburger').trigger('click')
+    expect(wrapper.find('.menu-dropdown').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Settings')
+    expect(wrapper.text()).toContain('About')
+    expect(wrapper.text()).toContain('Changelog')
   })
 })
