@@ -1,5 +1,18 @@
 <template>
   <div>
+    <!-- List tabs -->
+    <div v-if="sortedAllLists.length > 1" class="list-tabs">
+      <router-link
+        v-for="l in sortedAllLists"
+        :key="l.id"
+        :to="`/lists/${l.id}`"
+        class="list-tab"
+        :class="{ active: l.id === listId }"
+      >
+        {{ l.title }}
+      </router-link>
+    </div>
+
     <div class="list-header">
       <div>
         <router-link :to="backTo" class="back-link">← Back</router-link>
@@ -353,6 +366,9 @@
   const itemsStore = useItemsStore()
   const listsStore = useListsStore()
   const listId = route.params.listId as string
+  const sortedAllLists = computed(() =>
+    [...listsStore.lists].sort((a, b) => a.title.localeCompare(b.title))
+  )
   const transactionTypesList = ref<TransactionType[]>([])
 
   /** Back destination: go to the calendar (at unscheduled section) if we arrived from there */
@@ -753,6 +769,38 @@
   }
   .form-clear-btn:hover {
     color: var(--color-text-muted);
+  }
+  .list-tabs {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .list-tab {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+    border-radius: 6px 6px 0 0;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+  .list-tab:hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-text);
+  }
+  .list-tab.active {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+    font-weight: 600;
+    margin-bottom: -1px;
   }
   .list-header {
     display: flex;

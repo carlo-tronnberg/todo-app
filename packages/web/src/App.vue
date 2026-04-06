@@ -41,7 +41,7 @@
     </nav>
 
     <main class="main-content">
-      <router-view />
+      <router-view :key="$route.fullPath" />
     </main>
 
     <span class="app-version">v{{ appVersion }}</span>
