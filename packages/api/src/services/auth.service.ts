@@ -83,6 +83,7 @@ export class AuthService {
         firstName: users.firstName,
         lastName: users.lastName,
         phone: users.phone,
+        avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -120,6 +121,7 @@ export class AuthService {
         firstName: users.firstName,
         lastName: users.lastName,
         phone: users.phone,
+        avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
       })
 
@@ -127,7 +129,12 @@ export class AuthService {
     return updated ?? null
   }
 
-  async findOrCreateByGoogle(profile: { email: string; firstName?: string; lastName?: string }) {
+  async findOrCreateByGoogle(profile: {
+    email: string
+    firstName?: string
+    lastName?: string
+    avatarUrl?: string
+  }) {
     const [existing] = await this.db
       .select()
       .from(users)
@@ -135,16 +142,23 @@ export class AuthService {
       .limit(1)
 
     if (existing) {
+      // Update avatar on each login
+      if (profile.avatarUrl && profile.avatarUrl !== existing.avatarUrl) {
+        await this.db
+          .update(users)
+          .set({ avatarUrl: profile.avatarUrl })
+          .where(eq(users.id, existing.id))
+      }
       return {
         id: existing.id,
         email: existing.email,
         username: existing.username,
         firstName: existing.firstName,
         lastName: existing.lastName,
+        avatarUrl: profile.avatarUrl ?? existing.avatarUrl,
       }
     }
 
-    // Create new user with a random password (they'll use Google to log in)
     const username = profile.email.split('@')[0] + '_' + Date.now()
     const passwordHash = await hashPassword(crypto.randomUUID())
 
@@ -156,6 +170,7 @@ export class AuthService {
         passwordHash,
         firstName: profile.firstName ?? null,
         lastName: profile.lastName ?? null,
+        avatarUrl: profile.avatarUrl ?? null,
       })
       .returning({
         id: users.id,
@@ -163,6 +178,7 @@ export class AuthService {
         username: users.username,
         firstName: users.firstName,
         lastName: users.lastName,
+        avatarUrl: users.avatarUrl,
       })
 
     return user

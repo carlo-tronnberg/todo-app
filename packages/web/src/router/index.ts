@@ -58,6 +58,16 @@ const router = createRouter({
       component: () => import('../views/SettingsView.vue'),
     },
     {
+      path: '/about',
+      name: 'About',
+      component: () => import('../views/AboutView.vue'),
+    },
+    {
+      path: '/changelog',
+      name: 'Changelog',
+      component: () => import('../views/ChangelogView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

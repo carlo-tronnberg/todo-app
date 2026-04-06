@@ -26,6 +26,7 @@ export interface User {
   firstName?: string | null
   lastName?: string | null
   phone?: string | null
+  avatarUrl?: string | null
   createdAt: string
 }
 

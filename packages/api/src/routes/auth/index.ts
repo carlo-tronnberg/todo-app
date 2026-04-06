@@ -60,7 +60,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       // and we verified the exchange with client_secret, so this is safe.
       const payload = JSON.parse(
         Buffer.from(tokens.id_token.split('.')[1], 'base64url').toString()
-      ) as { email?: string; given_name?: string; family_name?: string }
+      ) as { email?: string; given_name?: string; family_name?: string; picture?: string }
 
       if (!payload.email) return reply.unauthorized('No email in Google profile')
 
@@ -68,6 +68,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         email: payload.email,
         firstName: payload.given_name,
         lastName: payload.family_name,
+        avatarUrl: payload.picture,
       })
 
       const token = app.jwt.sign({ sub: user.id, email: user.email, username: user.username })
