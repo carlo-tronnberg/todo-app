@@ -84,6 +84,7 @@ export class AuthService {
         lastName: users.lastName,
         phone: users.phone,
         avatarUrl: users.avatarUrl,
+        isAdmin: users.isAdmin,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -122,6 +123,7 @@ export class AuthService {
         lastName: users.lastName,
         phone: users.phone,
         avatarUrl: users.avatarUrl,
+        isAdmin: users.isAdmin,
         createdAt: users.createdAt,
       })
 
@@ -134,6 +136,7 @@ export class AuthService {
     firstName?: string
     lastName?: string
     avatarUrl?: string
+    isAdmin?: boolean
   }) {
     const [existing] = await this.db
       .select()
@@ -171,6 +174,7 @@ export class AuthService {
         firstName: profile.firstName ?? null,
         lastName: profile.lastName ?? null,
         avatarUrl: profile.avatarUrl ?? null,
+        isAdmin: profile.isAdmin ?? false,
       })
       .returning({
         id: users.id,

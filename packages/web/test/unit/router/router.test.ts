@@ -69,4 +69,40 @@ describe('router navigation guard', () => {
     await router.push('/nonexistent-path')
     expect(router.currentRoute.value.path).toBe('/')
   })
+
+  it('handles SSO token in query param', async () => {
+    setActivePinia(createPinia())
+    await router.push('/?token=sso-jwt-token')
+    // Should redirect to dashboard and store the token
+    expect(localStorage.getItem('auth_token')).toBe('sso-jwt-token')
+    expect(router.currentRoute.value.name).toBe('Dashboard')
+  })
+
+  it('navigates to /users route', async () => {
+    localStorage.setItem('auth_token', 'tok')
+    setActivePinia(createPinia())
+    await router.push('/users')
+    expect(router.currentRoute.value.name).toBe('Users')
+  })
+
+  it('navigates to /about route', async () => {
+    localStorage.setItem('auth_token', 'tok')
+    setActivePinia(createPinia())
+    await router.push('/about')
+    expect(router.currentRoute.value.name).toBe('About')
+  })
+
+  it('navigates to /changelog route', async () => {
+    localStorage.setItem('auth_token', 'tok')
+    setActivePinia(createPinia())
+    await router.push('/changelog')
+    expect(router.currentRoute.value.name).toBe('Changelog')
+  })
+
+  it('navigates to /settings route', async () => {
+    localStorage.setItem('auth_token', 'tok')
+    setActivePinia(createPinia())
+    await router.push('/settings')
+    expect(router.currentRoute.value.name).toBe('Settings')
+  })
 })

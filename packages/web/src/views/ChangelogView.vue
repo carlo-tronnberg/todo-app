@@ -13,6 +13,17 @@
 <script setup lang="ts">
   const entries = [
     {
+      version: 'v0.7.0',
+      changes: [
+        'Share lists by email or username with role selection (viewer/editor/admin)',
+        'Change share roles from the manage sharing modal',
+        'Admin user management page — view all users, toggle admin status',
+        'Users link in profile menu (visible to admins only)',
+        'Full-width list title with responsive font size',
+        'Hover tooltips show full names on shared user avatars',
+      ],
+    },
+    {
       version: 'v0.6.0',
       changes: [
         'List sharing: invite users by email to collaborate on lists',
