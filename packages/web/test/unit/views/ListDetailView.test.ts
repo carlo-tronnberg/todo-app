@@ -1031,4 +1031,59 @@ describe('ListDetailView', () => {
       )
     })
   })
+
+  describe('undo/redo buttons', () => {
+    it('renders undo and redo buttons', async () => {
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([])
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+      expect(wrapper.find('.undo-btn').exists()).toBe(true)
+      expect(wrapper.find('.redo-btn').exists()).toBe(true)
+    })
+
+    it('undo button is disabled when no actions', async () => {
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([])
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+      expect(wrapper.find('.undo-btn').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.redo-btn').attributes('disabled')).toBeDefined()
+    })
+  })
+
+  describe('touch swipe navigation', () => {
+    it('does not navigate on short swipe', async () => {
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([])
+      const router = await makeRouter()
+      const pushSpy = vi.spyOn(router, 'push')
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+
+      const container = wrapper.find('div')
+      await container.trigger('touchstart', { touches: [{ clientX: 100 }] })
+      await container.trigger('touchend', { changedTouches: [{ clientX: 120 }] })
+      expect(pushSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('keyboard shortcuts', () => {
+    it('Escape closes modal', async () => {
+      mockListsApi.getOne.mockResolvedValue(fakeList)
+      mockListsApi.getItems.mockResolvedValue([])
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+
+      await wrapper.find('button.btn-primary.btn-sm').trigger('click')
+      expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await flushPromises()
+      expect(wrapper.find('.modal-backdrop').exists()).toBe(false)
+    })
+  })
 })

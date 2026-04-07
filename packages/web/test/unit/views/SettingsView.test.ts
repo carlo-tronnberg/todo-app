@@ -179,4 +179,24 @@ describe('SettingsView', () => {
     await flushPromises()
     expect(mockTxTypesApi.remove).toHaveBeenCalledWith('1')
   })
+
+  it('toggles theme when button is clicked', async () => {
+    const { wrapper } = mountSettings()
+    await flushPromises()
+    const themeBtn = wrapper.findAll('.btn-sm').find((b) => b.text().includes('mode'))
+    expect(themeBtn).toBeTruthy()
+    await themeBtn!.trigger('click')
+    // Just verify it doesn't throw
+  })
+
+  it('handleRestoreFile does nothing when no file is selected', async () => {
+    const { wrapper } = mountSettings()
+    await flushPromises()
+    const event = { target: { files: null, value: '' } }
+    await (
+      wrapper.vm as unknown as { handleRestoreFile: (e: Event) => Promise<void> }
+    ).handleRestoreFile(event as unknown as Event)
+    await flushPromises()
+    expect(mockBackupApi.restore).not.toHaveBeenCalled()
+  })
 })
