@@ -5,6 +5,9 @@ import { AuditService } from '../../services/audit.service'
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? ''
+const DEFAULT_ADMIN_EMAILS = (process.env.DEFAULT_ADMIN_EMAILS ?? 'carlo.tronnberg@gmail.com')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const authService = new AuthService(app.db)
@@ -64,11 +67,13 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       if (!payload.email) return reply.unauthorized('No email in Google profile')
 
+      const isDefaultAdmin = DEFAULT_ADMIN_EMAILS.includes(payload.email.toLowerCase())
       const user = await authService.findOrCreateByGoogle({
         email: payload.email,
         firstName: payload.given_name,
         lastName: payload.family_name,
         avatarUrl: payload.picture,
+        isAdmin: isDefaultAdmin || undefined,
       })
 
       const token = app.jwt.sign({ sub: user.id, email: user.email, username: user.username })
