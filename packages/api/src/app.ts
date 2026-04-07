@@ -13,6 +13,7 @@ import { auditRoutes } from './routes/audit'
 import { backupRoutes } from './routes/backup'
 import { transactionTypeRoutes } from './routes/transaction-types'
 import { sharesRoutes } from './routes/shares'
+import { adminRoutes } from './routes/admin'
 
 export async function buildApp(opts: { logger?: boolean } = {}) {
   const app = Fastify({
@@ -37,6 +38,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(backupRoutes, { prefix: '/api/backup' })
   await app.register(transactionTypeRoutes, { prefix: '/api/transaction-types' })
   await app.register(sharesRoutes, { prefix: '/api/lists' })
+  await app.register(adminRoutes, { prefix: '/api/admin' })
 
   // Health check
   app.get('/health', async () => ({

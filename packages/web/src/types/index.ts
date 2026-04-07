@@ -27,6 +27,7 @@ export interface User {
   lastName?: string | null
   phone?: string | null
   avatarUrl?: string | null
+  isAdmin?: boolean
   createdAt: string
 }
 

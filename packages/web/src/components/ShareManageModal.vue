@@ -5,13 +5,22 @@
 
       <form class="share-add-form" @submit.prevent="handleAdd">
         <input
-          v-model="email"
-          type="email"
+          v-model="emailOrUsername"
+          type="text"
           class="form-input"
-          placeholder="Email address…"
+          placeholder="Email or username…"
           required
         />
-        <button type="submit" class="btn btn-primary btn-sm" :disabled="adding || !email.trim()">
+        <select v-model="newRole" class="form-input" style="max-width: 7rem">
+          <option value="viewer">Viewer</option>
+          <option value="editor">Editor</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button
+          type="submit"
+          class="btn btn-primary btn-sm"
+          :disabled="adding || !emailOrUsername.trim()"
+        >
           {{ adding ? 'Adding…' : 'Share' }}
         </button>
       </form>
@@ -37,6 +46,20 @@
             }}</span>
             <span class="share-email">{{ share.user.email }}</span>
           </div>
+          <select
+            :value="share.role"
+            class="share-role"
+            @change="
+              $emit('updateRole', {
+                shareId: share.id,
+                role: ($event.target as HTMLSelectElement).value,
+              })
+            "
+          >
+            <option value="viewer">Viewer</option>
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+          </select>
           <button class="share-remove" title="Remove" @click="$emit('remove', share.id)">✕</button>
         </li>
       </ul>
@@ -58,24 +81,26 @@
   }>()
 
   const emit = defineEmits<{
-    add: [email: string]
+    add: [emailOrUsername: string, role: string]
     remove: [shareId: string]
+    updateRole: [payload: { shareId: string; role: string }]
     close: []
   }>()
 
   useEscapeKey(() => emit('close'))
 
-  const email = ref('')
+  const emailOrUsername = ref('')
+  const newRole = ref('editor')
   const adding = ref(false)
   const addError = ref('')
 
   async function handleAdd() {
-    if (!email.value.trim()) return
+    if (!emailOrUsername.value.trim()) return
     adding.value = true
     addError.value = ''
     try {
-      emit('add', email.value.trim())
-      email.value = ''
+      emit('add', emailOrUsername.value.trim(), newRole.value)
+      emailOrUsername.value = ''
     } finally {
       adding.value = false
     }
@@ -147,6 +172,15 @@
     color: var(--color-text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .share-role {
+    font-size: 0.78rem;
+    padding: 0.15rem 0.3rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    flex-shrink: 0;
   }
   .share-remove {
     background: none;

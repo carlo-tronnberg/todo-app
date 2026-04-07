@@ -14,38 +14,42 @@
     </div>
 
     <div class="list-header">
-      <div class="list-header-left">
+      <div class="list-header-top">
         <router-link :to="backTo" class="back-link">← Back</router-link>
-        <h1 v-if="list">{{ list.icon ? `${list.icon} ` : '' }}{{ list.title }}</h1>
-        <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
-      </div>
-      <div class="list-header-right">
-        <div class="shared-avatars">
-          <img
-            v-for="share in listShares"
-            :key="share.id"
-            :src="share.user.avatarUrl || ''"
-            :alt="share.user.firstName || share.user.username"
-            :title="
-              share.user.firstName
-                ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
-                : share.user.email
-            "
-            class="shared-avatar"
-            referrerpolicy="no-referrer"
-            @error="($event.target as HTMLImageElement).style.display = 'none'"
-          />
-          <span
-            v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
-            :key="'f' + share.id"
-            class="shared-avatar shared-avatar-fallback"
-            :title="share.user.email"
-          >
-            {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
-          </span>
+        <div class="list-header-share">
+          <div class="shared-avatars">
+            <img
+              v-for="share in listShares"
+              :key="share.id"
+              :src="share.user.avatarUrl || ''"
+              :alt="share.user.firstName || share.user.username"
+              :title="
+                share.user.firstName
+                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+                  : share.user.email
+              "
+              class="shared-avatar"
+              referrerpolicy="no-referrer"
+              @error="($event.target as HTMLImageElement).style.display = 'none'"
+            />
+            <span
+              v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
+              :key="'f' + share.id"
+              class="shared-avatar shared-avatar-fallback"
+              :title="
+                share.user.firstName
+                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+                  : share.user.email
+              "
+            >
+              {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
+            </span>
+          </div>
+          <button class="btn btn-secondary btn-sm" @click="showShareModal = true">👥 Share</button>
         </div>
-        <button class="btn btn-secondary btn-sm" @click="showShareModal = true">👥 Share</button>
       </div>
+      <h1 v-if="list" class="list-title">{{ list.icon ? `${list.icon} ` : '' }}{{ list.title }}</h1>
+      <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
     </div>
 
     <div class="list-actions">
@@ -304,6 +308,7 @@
       :shares="listShares"
       @add="handleAddShare"
       @remove="handleRemoveShare"
+      @update-role="handleUpdateShareRole"
       @close="showShareModal = false"
     />
   </div>
@@ -702,9 +707,9 @@
     await itemsStore.fetchItems(listId)
   }
 
-  async function handleAddShare(email: string) {
+  async function handleAddShare(emailOrUsername: string, role: string) {
     try {
-      const share = await sharesApi.create(listId, email)
+      const share = await sharesApi.create(listId, emailOrUsername, role)
       listShares.value = [...listShares.value, share]
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -715,6 +720,12 @@
   async function handleRemoveShare(shareId: string) {
     await sharesApi.remove(listId, shareId)
     listShares.value = listShares.value.filter((s) => s.id !== shareId)
+  }
+
+  async function handleUpdateShareRole(payload: { shareId: string; role: string }) {
+    await sharesApi.updateRole(listId, payload.shareId, payload.role)
+    const share = listShares.value.find((s) => s.id === payload.shareId)
+    if (share) share.role = payload.role
   }
 
   async function handleArchive(itemId: string) {
@@ -865,17 +876,24 @@
     margin-bottom: -1px;
   }
   .list-header {
+    margin-bottom: 0.5rem;
+  }
+  .list-header-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.5rem;
-    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.25rem;
   }
-  .list-header-right {
+  .list-header-share {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+  }
+  .list-title {
+    font-size: clamp(1rem, 4vw, 1.5rem);
+    word-break: break-word;
+    margin: 0;
   }
   .shared-avatars {
     display: flex;

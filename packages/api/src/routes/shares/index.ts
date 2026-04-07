@@ -56,15 +56,82 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
     }))
   })
 
-  // POST /api/lists/:listId/shares — share a list with a user by email
-  app.post<{ Params: { listId: string }; Body: { email: string; role?: string } }>(
-    '/:listId/shares',
+  // POST /api/lists/:listId/shares — share a list with a user by email or username
+  app.post<{
+    Params: { listId: string }
+    Body: { email?: string; emailOrUsername?: string; role?: string }
+  }>('/:listId/shares', auth, async (request, reply) => {
+    const { role } = request.body ?? {}
+    const query = (request.body?.emailOrUsername ?? request.body?.email ?? '').trim()
+    if (!query) return reply.badRequest('email or username is required')
+
+    // Must own the list to share it
+    const [list] = await app.db
+      .select()
+      .from(todoLists)
+      .where(and(eq(todoLists.id, request.params.listId), eq(todoLists.userId, request.user.sub)))
+      .limit(1)
+    if (!list) return reply.notFound()
+
+    // Find the target user by email or username
+    const [byEmail] = await app.db
+      .select()
+      .from(users)
+      .where(eq(users.email, query.toLowerCase()))
+      .limit(1)
+    const [byUsername] = byEmail
+      ? [byEmail]
+      : await app.db.select().from(users).where(eq(users.username, query)).limit(1)
+    const targetUser = byUsername
+    if (!targetUser) return reply.badRequest('No user found with that email or username')
+
+    if (targetUser.id === request.user.sub) {
+      return reply.badRequest('You cannot share a list with yourself')
+    }
+
+    // Check if already shared
+    const [existing] = await app.db
+      .select()
+      .from(listShares)
+      .where(
+        and(
+          eq(listShares.listId, request.params.listId),
+          eq(listShares.sharedWithUserId, targetUser.id)
+        )
+      )
+      .limit(1)
+    if (existing) return reply.badRequest('List is already shared with this user')
+
+    const [share] = await app.db
+      .insert(listShares)
+      .values({
+        listId: request.params.listId,
+        sharedWithUserId: targetUser.id,
+        sharedByUserId: request.user.sub,
+        role: role ?? 'editor',
+      })
+      .returning()
+
+    return reply.code(201).send({
+      id: share.id,
+      role: share.role,
+      createdAt: share.createdAt,
+      user: {
+        id: targetUser.id,
+        email: targetUser.email,
+        username: targetUser.username,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        avatarUrl: targetUser.avatarUrl,
+      },
+    })
+  })
+
+  // PATCH /api/lists/:listId/shares/:shareId — update share role
+  app.patch<{ Params: { listId: string; shareId: string }; Body: { role: string } }>(
+    '/:listId/shares/:shareId',
     auth,
     async (request, reply) => {
-      const { email, role } = request.body ?? {}
-      if (!email) return reply.badRequest('email is required')
-
-      // Must own the list to share it
       const [list] = await app.db
         .select()
         .from(todoLists)
@@ -72,54 +139,18 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
         .limit(1)
       if (!list) return reply.notFound()
 
-      // Find the target user
-      const [targetUser] = await app.db
-        .select()
-        .from(users)
-        .where(eq(users.email, email.trim().toLowerCase()))
-        .limit(1)
-      if (!targetUser) return reply.badRequest('No user found with that email')
-
-      if (targetUser.id === request.user.sub) {
-        return reply.badRequest('You cannot share a list with yourself')
+      const validRoles = ['viewer', 'editor', 'admin']
+      if (!validRoles.includes(request.body?.role)) {
+        return reply.badRequest('role must be viewer, editor, or admin')
       }
 
-      // Check if already shared
-      const [existing] = await app.db
-        .select()
-        .from(listShares)
-        .where(
-          and(
-            eq(listShares.listId, request.params.listId),
-            eq(listShares.sharedWithUserId, targetUser.id)
-          )
-        )
-        .limit(1)
-      if (existing) return reply.badRequest('List is already shared with this user')
-
-      const [share] = await app.db
-        .insert(listShares)
-        .values({
-          listId: request.params.listId,
-          sharedWithUserId: targetUser.id,
-          sharedByUserId: request.user.sub,
-          role: role ?? 'editor',
-        })
+      const [updated] = await app.db
+        .update(listShares)
+        .set({ role: request.body.role })
+        .where(eq(listShares.id, request.params.shareId))
         .returning()
 
-      return reply.code(201).send({
-        id: share.id,
-        role: share.role,
-        createdAt: share.createdAt,
-        user: {
-          id: targetUser.id,
-          email: targetUser.email,
-          username: targetUser.username,
-          firstName: targetUser.firstName,
-          lastName: targetUser.lastName,
-          avatarUrl: targetUser.avatarUrl,
-        },
-      })
+      return updated ?? reply.notFound()
     }
   )
 

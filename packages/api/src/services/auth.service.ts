@@ -84,6 +84,7 @@ export class AuthService {
         lastName: users.lastName,
         phone: users.phone,
         avatarUrl: users.avatarUrl,
+        isAdmin: users.isAdmin,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -122,6 +123,7 @@ export class AuthService {
         lastName: users.lastName,
         phone: users.phone,
         avatarUrl: users.avatarUrl,
+        isAdmin: users.isAdmin,
         createdAt: users.createdAt,
       })
 

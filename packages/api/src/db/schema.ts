@@ -34,6 +34,7 @@ export const users = pgTable('users', {
   lastName: varchar('last_name', { length: 100 }),
   phone: varchar('phone', { length: 30 }),
   avatarUrl: text('avatar_url'),
+  isAdmin: boolean('is_admin').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
