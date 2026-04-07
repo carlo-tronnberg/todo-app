@@ -13,43 +13,39 @@
       </router-link>
     </div>
 
-    <div class="list-header">
-      <div class="list-header-row">
-        <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
-        <div class="list-header-share">
-          <div class="shared-avatars">
-            <img
-              v-for="share in listShares"
-              :key="share.id"
-              :src="share.user.avatarUrl || ''"
-              :alt="share.user.firstName || share.user.username"
-              :title="
-                share.user.firstName
-                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
-                  : share.user.email
-              "
-              class="shared-avatar"
-              referrerpolicy="no-referrer"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
-            />
-            <span
-              v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
-              :key="'f' + share.id"
-              class="shared-avatar shared-avatar-fallback"
-              :title="
-                share.user.firstName
-                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
-                  : share.user.email
-              "
-            >
-              {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
-            </span>
-          </div>
-          <button v-if="canShare" class="btn btn-secondary btn-sm" @click="showShareModal = true">
-            👥 Share
-          </button>
-        </div>
+    <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
+    <div v-if="listShares.length > 0 || canShare" class="list-share-row">
+      <div class="shared-avatars">
+        <img
+          v-for="share in listShares"
+          :key="share.id"
+          :src="share.user.avatarUrl || ''"
+          :alt="share.user.firstName || share.user.username"
+          :title="
+            share.user.firstName
+              ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+              : share.user.email
+          "
+          class="shared-avatar"
+          referrerpolicy="no-referrer"
+          @error="($event.target as HTMLImageElement).style.display = 'none'"
+        />
+        <span
+          v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
+          :key="'f' + share.id"
+          class="shared-avatar shared-avatar-fallback"
+          :title="
+            share.user.firstName
+              ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+              : share.user.email
+          "
+        >
+          {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
+        </span>
       </div>
+      <button v-if="canShare" class="btn btn-secondary btn-sm" @click="showShareModal = true">
+        👥 Share
+      </button>
     </div>
 
     <div class="list-actions">
@@ -973,16 +969,19 @@
     display: flex;
     gap: 0.25rem;
     overflow-x: auto;
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.25rem;
+    margin: -1.5rem -1rem 0.5rem;
+    padding: 0.35rem 1rem 0.25rem;
     border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface, #fff);
     position: sticky;
-    top: 48px; /* below nav bar */
+    top: var(--nav-height, 80px);
     z-index: 50;
-    background: var(--color-bg, #fff);
   }
-  [data-theme='dark'] .list-tabs {
-    background: var(--color-bg, #1a1a2e);
+  @media (max-width: 600px) {
+    .list-tabs {
+      margin: -1rem -0.75rem 0.5rem;
+      padding: 0.35rem 0.75rem 0.25rem;
+    }
   }
   .list-tab {
     padding: 0.4rem 0.85rem;
@@ -1008,20 +1007,17 @@
     font-weight: 600;
     margin-bottom: -1px;
   }
-  .list-header {
-    margin-bottom: 0.5rem;
+  .list-desc {
+    margin: 0 0 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
   }
-  .list-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  .list-header-share {
+  .list-share-row {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.5rem;
-    flex-shrink: 0;
+    margin-bottom: 0.35rem;
   }
   .shared-avatars {
     display: flex;
@@ -1081,10 +1077,6 @@
     font-size: 0.78rem;
     color: var(--color-text-faint);
     font-style: italic;
-  }
-  .list-desc {
-    color: var(--color-text-muted);
-    margin-top: 0.25rem;
   }
   .due-this-month {
     display: inline-block;
