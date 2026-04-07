@@ -3,6 +3,7 @@ import { ListsService } from '../../services/lists.service'
 import { ItemsService } from '../../services/items.service'
 import { CreateItemInput } from '../../services/items.service'
 import { AuditService } from '../../services/audit.service'
+import { getShareRole, canWrite } from '../shares'
 
 export const listsRoutes: FastifyPluginAsync = async (app) => {
   const listsService = new ListsService(app.db)
@@ -77,6 +78,9 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
     auth,
     async (request, reply) => {
       if (!request.body.title) return reply.badRequest('title is required')
+      const role = await getShareRole(app.db, request.params.listId, request.user.sub)
+      if (!role) return reply.notFound()
+      if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
       try {
         const item = await itemsService.create(
           request.params.listId,

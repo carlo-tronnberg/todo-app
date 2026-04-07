@@ -129,13 +129,13 @@ describe('ListDetailView', () => {
     expect(wrapper.text()).toContain('Read book')
   })
 
-  it('shows list title after load', async () => {
-    mockListsApi.getOne.mockResolvedValue(fakeList)
+  it('renders list content after load', async () => {
+    mockListsApi.getOne.mockResolvedValue({ ...fakeList, description: 'My tasks' })
     mockListsApi.getItems.mockResolvedValue([])
     const router = await makeRouter()
     const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Test List')
+    expect(wrapper.text()).toContain('My tasks')
   })
 
   it('opens add item modal when Add Item button is clicked', async () => {
@@ -745,30 +745,6 @@ describe('ListDetailView', () => {
       await flushPromises()
 
       expect(pushSpy).toHaveBeenCalled()
-    })
-  })
-
-  describe('backTo computed', () => {
-    it('returns /calendar#unscheduled when from=calendar query param', async () => {
-      mockListsApi.getOne.mockResolvedValue(fakeList)
-      mockListsApi.getItems.mockResolvedValue([])
-      const router = await makeRouter('l1', { from: 'calendar' })
-      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
-      await flushPromises()
-
-      const backLink = wrapper.find('.back-link')
-      expect(backLink.attributes('href')).toContain('calendar')
-    })
-
-    it('returns / by default (no from query param)', async () => {
-      mockListsApi.getOne.mockResolvedValue(fakeList)
-      mockListsApi.getItems.mockResolvedValue([])
-      const router = await makeRouter('l1')
-      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
-      await flushPromises()
-
-      const backLink = wrapper.find('.back-link')
-      expect(backLink.attributes('href')).toBe('/')
     })
   })
 

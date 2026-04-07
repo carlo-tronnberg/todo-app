@@ -65,13 +65,11 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
     const query = (request.body?.emailOrUsername ?? request.body?.email ?? '').trim()
     if (!query) return reply.badRequest('email or username is required')
 
-    // Must own the list to share it
-    const [list] = await app.db
-      .select()
-      .from(todoLists)
-      .where(and(eq(todoLists.id, request.params.listId), eq(todoLists.userId, request.user.sub)))
-      .limit(1)
-    if (!list) return reply.notFound()
+    // Must be owner or admin to share
+    const shareRole = await getShareRole(app.db, request.params.listId, request.user.sub)
+    if (shareRole !== 'owner' && shareRole !== 'admin') {
+      return reply.forbidden('Only owners and admins can share lists')
+    }
 
     // Find the target user by email or username
     const [byEmail] = await app.db
@@ -132,12 +130,10 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
     '/:listId/shares/:shareId',
     auth,
     async (request, reply) => {
-      const [list] = await app.db
-        .select()
-        .from(todoLists)
-        .where(and(eq(todoLists.id, request.params.listId), eq(todoLists.userId, request.user.sub)))
-        .limit(1)
-      if (!list) return reply.notFound()
+      const patchRole = await getShareRole(app.db, request.params.listId, request.user.sub)
+      if (patchRole !== 'owner' && patchRole !== 'admin') {
+        return reply.forbidden('Only owners and admins can manage shares')
+      }
 
       const validRoles = ['viewer', 'editor', 'admin']
       if (!validRoles.includes(request.body?.role)) {
@@ -159,13 +155,10 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
     '/:listId/shares/:shareId',
     auth,
     async (request, reply) => {
-      // Must own the list to remove shares
-      const [list] = await app.db
-        .select()
-        .from(todoLists)
-        .where(and(eq(todoLists.id, request.params.listId), eq(todoLists.userId, request.user.sub)))
-        .limit(1)
-      if (!list) return reply.notFound()
+      const delRole = await getShareRole(app.db, request.params.listId, request.user.sub)
+      if (delRole !== 'owner' && delRole !== 'admin') {
+        return reply.forbidden('Only owners and admins can manage shares')
+      }
 
       await app.db.delete(listShares).where(eq(listShares.id, request.params.shareId))
       return reply.code(204).send()
@@ -179,17 +172,32 @@ export async function verifyListAccess(
   listId: string,
   userId: string
 ): Promise<boolean> {
+  const role = await getShareRole(db, listId, userId)
+  return role !== null
+}
+
+/** Get the user's role for a list: 'owner', 'admin', 'editor', 'viewer', or null */
+export async function getShareRole(
+  db: Database,
+  listId: string,
+  userId: string
+): Promise<string | null> {
   const [owned] = await db
     .select({ id: todoLists.id })
     .from(todoLists)
     .where(and(eq(todoLists.id, listId), eq(todoLists.userId, userId)))
     .limit(1)
-  if (owned) return true
+  if (owned) return 'owner'
 
   const [shared] = await db
-    .select({ id: listShares.id })
+    .select({ role: listShares.role })
     .from(listShares)
     .where(and(eq(listShares.listId, listId), eq(listShares.sharedWithUserId, userId)))
     .limit(1)
-  return !!shared
+  return shared?.role ?? null
+}
+
+/** Returns true if the role allows write operations */
+export function canWrite(role: string | null): boolean {
+  return role === 'owner' || role === 'admin' || role === 'editor'
 }

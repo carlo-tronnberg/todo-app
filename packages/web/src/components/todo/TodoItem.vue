@@ -6,6 +6,7 @@
   >
     <!-- Complete button -->
     <button
+      v-if="!readonly"
       class="complete-btn"
       title="Mark complete"
       :aria-label="`Complete: ${item.title}`"
@@ -66,11 +67,19 @@
       >
         ⏱
       </button>
-      <button class="icon-btn" title="Duplicate item" @click.stop="$emit('duplicate', item.id)">
+      <button
+        v-if="!readonly"
+        class="icon-btn"
+        title="Duplicate item"
+        @click.stop="$emit('duplicate', item.id)"
+      >
         ⎘
       </button>
-      <button class="icon-btn" title="Edit item" @click.stop="$emit('edit', item)">✎</button>
+      <button v-if="!readonly" class="icon-btn" title="Edit item" @click.stop="$emit('edit', item)">
+        ✎
+      </button>
       <button
+        v-if="!readonly"
         class="icon-btn icon-btn-danger"
         title="Archive item"
         @click.stop="$emit('archive', item.id)"
@@ -86,7 +95,7 @@
   import { format, parseISO, differenceInDays, startOfDay } from 'date-fns'
   import type { TodoItem, UrgencyLevel } from '../../types'
 
-  const props = defineProps<{ item: TodoItem }>()
+  const props = defineProps<{ item: TodoItem; readonly?: boolean }>()
   defineEmits<{
     complete: [id: string]
     edit: [item: TodoItem]
