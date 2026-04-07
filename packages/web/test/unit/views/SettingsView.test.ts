@@ -43,28 +43,28 @@ describe('SettingsView', () => {
     vi.clearAllMocks()
   })
 
-  function mountSettings() {
-    const router = makeRouter()
+  async function mountSettings() {
+    const router = await makeRouter()
     const wrapper = mount(SettingsView, {
       global: { plugins: [pinia, router] },
     })
     return { wrapper }
   }
 
-  it('renders the Settings heading', () => {
-    const { wrapper } = mountSettings()
+  it('renders the Settings heading', async () => {
+    const { wrapper } = await mountSettings()
     expect(wrapper.text()).toContain('Settings')
   })
 
-  it('renders the Backup & Restore section', () => {
-    const { wrapper } = mountSettings()
+  it('renders the Backup & Restore section', async () => {
+    const { wrapper } = await mountSettings()
     expect(wrapper.text()).toContain('Backup')
     expect(wrapper.text()).toContain('Download backup')
   })
 
   it('calls backupApi.download when Download backup button is clicked', async () => {
     mockBackupApi.download.mockResolvedValue(undefined)
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
 
     const downloadBtn = wrapper.find('button.btn-secondary')
     await downloadBtn.trigger('click')
@@ -75,7 +75,7 @@ describe('SettingsView', () => {
 
   it('shows error when backupApi.download fails', async () => {
     mockBackupApi.download.mockRejectedValue(new Error('Network failure'))
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
 
     const downloadBtn = wrapper.find('button.btn-secondary')
     await downloadBtn.trigger('click')
@@ -91,7 +91,7 @@ describe('SettingsView', () => {
   it('restores from file and shows success message', async () => {
     const restoreResult = { lists: 2, items: 5 }
     mockBackupApi.restore.mockResolvedValue(restoreResult)
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
 
     const fakeData = { version: 1, lists: [] }
     const fakeFile = fakeFileWith(JSON.stringify(fakeData))
@@ -108,7 +108,7 @@ describe('SettingsView', () => {
   it('shows error when restore fails with server message', async () => {
     const err = { response: { data: { message: 'Invalid backup format' } } }
     mockBackupApi.restore.mockRejectedValue(err)
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
 
     const fakeData = { version: 1, lists: [] }
     const fakeFile = fakeFileWith(JSON.stringify(fakeData))
@@ -123,7 +123,7 @@ describe('SettingsView', () => {
 
   it('shows generic error when restore fails without server message', async () => {
     mockBackupApi.restore.mockRejectedValue(new Error('Unknown error'))
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
 
     const fakeFile = fakeFileWith('{}')
     const event = { target: { files: [fakeFile], value: '' } }
@@ -136,7 +136,7 @@ describe('SettingsView', () => {
   })
 
   it('does nothing when no file is selected', async () => {
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
 
     const event = { target: { files: [], value: '' } }
     await (
@@ -147,20 +147,20 @@ describe('SettingsView', () => {
     expect(mockBackupApi.restore).not.toHaveBeenCalled()
   })
 
-  it('shows the theme toggle', () => {
-    const { wrapper } = mountSettings()
+  it('shows the theme toggle', async () => {
+    const { wrapper } = await mountSettings()
     expect(wrapper.text()).toContain('Theme')
   })
 
   it('loads transaction types on mount', async () => {
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
     await flushPromises()
     expect(mockTxTypesApi.getAll).toHaveBeenCalled()
     expect(wrapper.text()).toContain('Autogiro')
   })
 
   it('adds a transaction type', async () => {
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
     await flushPromises()
     await (wrapper.vm as unknown as { addTxType: () => Promise<void> }).addTxType()
     // addTxType requires newTxName to be set — call directly via vm
@@ -171,7 +171,7 @@ describe('SettingsView', () => {
   })
 
   it('removes a transaction type', async () => {
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
     await flushPromises()
     await (wrapper.vm as unknown as { removeTxType: (id: string) => Promise<void> }).removeTxType(
       '1'
@@ -181,7 +181,7 @@ describe('SettingsView', () => {
   })
 
   it('toggles theme when button is clicked', async () => {
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
     await flushPromises()
     const themeBtn = wrapper.findAll('.btn-sm').find((b) => b.text().includes('mode'))
     expect(themeBtn).toBeTruthy()
@@ -190,7 +190,7 @@ describe('SettingsView', () => {
   })
 
   it('handleRestoreFile does nothing when no file is selected', async () => {
-    const { wrapper } = mountSettings()
+    const { wrapper } = await mountSettings()
     await flushPromises()
     const event = { target: { files: null, value: '' } }
     await (
