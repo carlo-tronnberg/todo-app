@@ -1,15 +1,8 @@
 <template>
   <div id="app-root">
-    <nav v-if="auth.isAuthenticated" class="nav-bar">
-      <div class="nav-content">
+    <nav v-if="auth.isAuthenticated" ref="navBar" class="nav-bar">
+      <div class="nav-top-row">
         <router-link to="/" class="nav-brand">📋 Todo Tracker</router-link>
-
-        <div class="nav-links">
-          <router-link to="/">📋 Lists</router-link>
-          <router-link to="/calendar">📅 Calendar</router-link>
-          <router-link to="/audit">📜 Log</router-link>
-        </div>
-
         <div class="nav-right">
           <button class="avatar-btn" @click="toggleMenu">
             <img
@@ -42,6 +35,11 @@
           </div>
         </div>
       </div>
+      <div class="nav-links">
+        <router-link to="/">📋 Lists</router-link>
+        <router-link to="/calendar">📅 Calendar</router-link>
+        <router-link to="/audit">📜 Log</router-link>
+      </div>
     </nav>
 
     <main class="main-content">
@@ -60,6 +58,13 @@
   const router = useRouter()
 
   const menuOpen = ref(false)
+  const navBar = ref<HTMLElement | null>(null)
+
+  function updateNavHeight() {
+    if (navBar.value) {
+      document.documentElement.style.setProperty('--nav-height', `${navBar.value.offsetHeight}px`)
+    }
+  }
 
   function closeMenu(e: MouseEvent) {
     const target = e.target as HTMLElement
@@ -68,11 +73,21 @@
     }
   }
 
+  let resizeObserver: ResizeObserver | null = null
+
   onMounted(() => {
     auth.fetchMe()
     document.addEventListener('click', closeMenu)
+    updateNavHeight()
+    if (navBar.value) {
+      resizeObserver = new ResizeObserver(updateNavHeight)
+      resizeObserver.observe(navBar.value)
+    }
   })
-  onUnmounted(() => document.removeEventListener('click', closeMenu))
+  onUnmounted(() => {
+    document.removeEventListener('click', closeMenu)
+    resizeObserver?.disconnect()
+  })
 
   function toggleMenu() {
     menuOpen.value = !menuOpen.value
@@ -103,14 +118,14 @@
   [data-theme='dark'] .nav-bar {
     background: #1e3a5f;
   }
-  .nav-content {
+  .nav-top-row {
     max-width: 1200px;
     margin: 0 auto;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 0.75rem;
-    min-height: 48px;
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 0.2rem 0;
   }
   .nav-brand {
     font-weight: 700;
@@ -119,13 +134,14 @@
     text-decoration: none;
     color: inherit;
   }
-
-  /* Center: nav links */
   .nav-links {
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
-    gap: 0.25rem;
-    flex: 1;
     justify-content: center;
+    gap: 0.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.2rem 0;
   }
   .nav-links a {
     color: rgba(255, 255, 255, 0.85);
@@ -227,33 +243,12 @@
   }
 
   @media (max-width: 600px) {
-    .nav-content {
-      gap: 0;
-      padding: 0.25rem 0;
-    }
-    .nav-brand {
-      order: 1;
-    }
-    .nav-right {
-      order: 2;
-      margin-left: auto;
-    }
-    .nav-links {
-      order: 3;
-      width: 100%;
-      justify-content: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 0.25rem 0;
-      gap: 0;
-    }
-    .nav-links a {
-      flex: 1;
-      text-align: center;
-      padding: 0.3rem 0.25rem;
-      font-size: 0.82rem;
-    }
     .main-content {
       padding: 1rem 0.75rem;
+    }
+    .nav-links a {
+      font-size: 0.82rem;
+      padding: 0.25rem 0.35rem;
     }
   }
 </style>

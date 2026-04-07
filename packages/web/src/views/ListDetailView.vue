@@ -13,48 +13,62 @@
       </router-link>
     </div>
 
-    <div class="list-header">
-      <div class="list-header-row">
-        <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
-        <div class="list-header-share">
-          <div class="shared-avatars">
-            <img
-              v-for="share in listShares"
-              :key="share.id"
-              :src="share.user.avatarUrl || ''"
-              :alt="share.user.firstName || share.user.username"
-              :title="
-                share.user.firstName
-                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
-                  : share.user.email
-              "
-              class="shared-avatar"
-              referrerpolicy="no-referrer"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
-            />
-            <span
-              v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
-              :key="'f' + share.id"
-              class="shared-avatar shared-avatar-fallback"
-              :title="
-                share.user.firstName
-                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
-                  : share.user.email
-              "
-            >
-              {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
-            </span>
-          </div>
-          <button v-if="canShare" class="btn btn-secondary btn-sm" @click="showShareModal = true">
-            👥 Share
-          </button>
-        </div>
+    <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
+    <div v-if="listShares.length > 0 || canShare" class="list-share-row">
+      <div class="shared-avatars">
+        <img
+          v-for="share in listShares"
+          :key="share.id"
+          :src="share.user.avatarUrl || ''"
+          :alt="share.user.firstName || share.user.username"
+          :title="
+            share.user.firstName
+              ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+              : share.user.email
+          "
+          class="shared-avatar"
+          referrerpolicy="no-referrer"
+          @error="($event.target as HTMLImageElement).style.display = 'none'"
+        />
+        <span
+          v-for="share in listShares.filter((s) => !s.user.avatarUrl)"
+          :key="'f' + share.id"
+          class="shared-avatar shared-avatar-fallback"
+          :title="
+            share.user.firstName
+              ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+              : share.user.email
+          "
+        >
+          {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
+        </span>
       </div>
+      <button v-if="canShare" class="btn btn-secondary btn-sm" @click="showShareModal = true">
+        👥 Share
+      </button>
     </div>
 
     <div class="list-actions">
       <div v-if="dueThisMonthCount > 0" class="due-this-month">
         {{ dueThisMonthCount }} due this month
+      </div>
+      <div class="undo-redo-group">
+        <button
+          class="undo-btn icon-action-btn"
+          title="Undo"
+          :disabled="!undoRedo.canUndo.value"
+          @click="performUndo"
+        >
+          ↩
+        </button>
+        <button
+          class="redo-btn icon-action-btn"
+          title="Redo"
+          :disabled="!undoRedo.canRedo.value"
+          @click="performRedo"
+        >
+          ↪
+        </button>
       </div>
       <button v-if="!isViewer" class="btn btn-primary btn-sm" @click="openAddModal">
         + Add Item
@@ -410,8 +424,10 @@
   import { sharesApi } from '../api/shares.api'
   import type { TodoItem, TodoList, ItemComment, Completion, ListShare } from '../types'
   import { computeUrgencyLevel } from '../composables/useUrgency'
+  import { useUndoRedo } from '../composables/useUndoRedo'
 
   const route = useRoute()
+  const undoRedo = useUndoRedo()
   const router = useRouter()
   const itemsStore = useItemsStore()
   const listsStore = useListsStore()
@@ -476,21 +492,38 @@
   const canShare = computed(() => myRole.value === 'owner' || myRole.value === 'admin')
 
   // Global Escape key — close the topmost open modal
-  function handleEscape(e: KeyboardEvent) {
-    if (e.key !== 'Escape') return
-    e.preventDefault()
-    if (showShareModal.value) {
-      showShareModal.value = false
-    } else if (historyItemId.value) {
-      historyItemId.value = null
-    } else if (completingItemId.value) {
-      completingItemId.value = null
-    } else if (showAddModal.value || editingItem.value) {
-      closeModal()
+  function handleKeyboard(e: KeyboardEvent) {
+    // Escape — close topmost modal
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      if (showShareModal.value) {
+        showShareModal.value = false
+      } else if (historyItemId.value) {
+        historyItemId.value = null
+      } else if (completingItemId.value) {
+        completingItemId.value = null
+      } else if (showAddModal.value || editingItem.value) {
+        closeModal()
+      }
+      return
+    }
+    // Ctrl+Z / Cmd+Z — undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault()
+      performUndo()
+      return
+    }
+    // Ctrl+Shift+Z / Cmd+Shift+Z or Ctrl+Y — redo
+    if (
+      ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) ||
+      ((e.ctrlKey || e.metaKey) && e.key === 'y')
+    ) {
+      e.preventDefault()
+      performRedo()
     }
   }
-  onMounted(() => document.addEventListener('keydown', handleEscape))
-  onUnmounted(() => document.removeEventListener('keydown', handleEscape))
+  onMounted(() => document.addEventListener('keydown', handleKeyboard))
+  onUnmounted(() => document.removeEventListener('keydown', handleKeyboard))
 
   // Comments state
   const commentsOpen = ref<Set<string>>(new Set())
@@ -716,8 +749,24 @@
       opts.currency = completionCurrency.value || undefined
     }
     if (completionTransactionType.value) opts.transactionType = completionTransactionType.value
-    await itemsStore.completeItem(listId, completingItemId.value, opts)
+    const itemId = completingItemId.value
+    const completion = await itemsStore.completeItem(listId, itemId, opts)
     completingItemId.value = null
+
+    // Push undo for completion
+    if (completion) {
+      const completionId = completion.id
+      undoRedo.push({
+        description: 'Complete item',
+        undo: async () => {
+          await itemsApi.deleteCompletion(completionId)
+          await itemsStore.fetchItems(listId)
+        },
+        redo: async () => {
+          await itemsStore.completeItem(listId, itemId, opts)
+        },
+      })
+    }
   }
 
   async function openHistoryModal(itemId: string) {
@@ -759,6 +808,16 @@
     await sharesApi.updateRole(listId, payload.shareId, payload.role)
     const share = listShares.value.find((s) => s.id === payload.shareId)
     if (share) share.role = payload.role
+  }
+
+  async function performUndo() {
+    await undoRedo.undo()
+    await itemsStore.fetchItems(listId)
+  }
+
+  async function performRedo() {
+    await undoRedo.redo()
+    await itemsStore.fetchItems(listId)
   }
 
   async function handleArchive(itemId: string) {
@@ -828,19 +887,49 @@
       }
 
       if (isEdit) {
+        const prevItem = { ...editingItem.value! }
+        const itemId = editingItem.value!.id
         const movingList = form.value.targetListId !== listId
         if (movingList) payload.listId = form.value.targetListId
-        await itemsStore.updateItem(listId, editingItem.value!.id, payload as Partial<TodoItem>)
+        await itemsStore.updateItem(listId, itemId, payload as Partial<TodoItem>)
         if (movingList) {
           itemsStore.itemsByList[listId] = (itemsStore.itemsByList[listId] ?? []).filter(
-            (i) => i.id !== editingItem.value!.id
+            (i) => i.id !== itemId
           )
         }
+        // Push undo action for edit
+        const savedPayload = { ...payload }
+        undoRedo.push({
+          description: `Edit "${prevItem.title}"`,
+          undo: async () => {
+            await itemsStore.updateItem(listId, itemId, prevItem as Partial<TodoItem>)
+          },
+          redo: async () => {
+            await itemsStore.updateItem(listId, itemId, savedPayload as Partial<TodoItem>)
+          },
+        })
       } else {
-        await itemsStore.createItem(
+        const created = await itemsStore.createItem(
           form.value.targetListId,
           payload as Partial<TodoItem> & { title: string }
         )
+        // Push undo action for create
+        if (created) {
+          const createdId = created.id
+          const createListId = form.value.targetListId
+          undoRedo.push({
+            description: `Create "${form.value.title}"`,
+            undo: async () => {
+              await itemsStore.archiveItem(createListId, createdId)
+            },
+            redo: async () => {
+              await itemsStore.createItem(
+                createListId,
+                payload as Partial<TodoItem> & { title: string }
+              )
+            },
+          })
+        }
       }
 
       closeModal()
@@ -880,16 +969,19 @@
     display: flex;
     gap: 0.25rem;
     overflow-x: auto;
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.25rem;
+    margin: -1.5rem -1rem 0.5rem;
+    padding: 0.35rem 1rem 0.25rem;
     border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface, #fff);
     position: sticky;
-    top: 48px; /* below nav bar */
+    top: var(--nav-height, 80px);
     z-index: 50;
-    background: var(--color-bg, #fff);
   }
-  [data-theme='dark'] .list-tabs {
-    background: var(--color-bg, #1a1a2e);
+  @media (max-width: 600px) {
+    .list-tabs {
+      margin: -1rem -0.75rem 0.5rem;
+      padding: 0.35rem 0.75rem 0.25rem;
+    }
   }
   .list-tab {
     padding: 0.4rem 0.85rem;
@@ -915,20 +1007,17 @@
     font-weight: 600;
     margin-bottom: -1px;
   }
-  .list-header {
-    margin-bottom: 0.5rem;
+  .list-desc {
+    margin: 0 0 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
   }
-  .list-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  .list-header-share {
+  .list-share-row {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.5rem;
-    flex-shrink: 0;
+    margin-bottom: 0.35rem;
   }
   .shared-avatars {
     display: flex;
@@ -960,14 +1049,34 @@
     justify-content: space-between;
     margin-bottom: 0.75rem;
   }
+  .undo-redo-group {
+    display: flex;
+    gap: 0.2rem;
+  }
+  .icon-action-btn {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.2rem 0.45rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+  .icon-action-btn:hover:not(:disabled) {
+    background: var(--color-surface-sunken);
+    color: var(--color-text);
+  }
+  .icon-action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
   .viewer-badge {
     font-size: 0.78rem;
     color: var(--color-text-faint);
     font-style: italic;
-  }
-  .list-desc {
-    color: var(--color-text-muted);
-    margin-top: 0.25rem;
   }
   .due-this-month {
     display: inline-block;
