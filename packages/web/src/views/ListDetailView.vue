@@ -450,6 +450,15 @@
   }
 
   function onTouchEnd(e: TouchEvent) {
+    // Disable swipe when any modal is open
+    if (
+      showAddModal.value ||
+      editingItem.value ||
+      completingItemId.value ||
+      historyItemId.value ||
+      showShareModal.value
+    )
+      return
     const dx = e.changedTouches[0].clientX - touchStartX
     if (Math.abs(dx) < 60) return // too short
     const idx = sortedAllLists.value.findIndex((l) => l.id === listId)
