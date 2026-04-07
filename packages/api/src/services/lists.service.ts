@@ -7,6 +7,7 @@ import {
   completions,
   itemComments,
   listShares,
+  users,
 } from '../db'
 
 export interface CreateListInput {
@@ -74,10 +75,46 @@ export class ListsService {
       }
     }
 
+    // Fetch shares with user info for all lists
+    const sharesRows = await this.db
+      .select({
+        listId: listShares.listId,
+        id: listShares.id,
+        role: listShares.role,
+        userId: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(listShares)
+      .innerJoin(users, eq(listShares.sharedWithUserId, users.id))
+      .where(inArray(listShares.listId, listIds))
+
+    const sharesByList = new Map<string, typeof sharesRows>()
+    for (const s of sharesRows) {
+      const arr = sharesByList.get(s.listId) ?? []
+      arr.push(s)
+      sharesByList.set(s.listId, arr)
+    }
+
     return lists.map((list) => ({
       ...list,
       uncompletedThisMonth: uncompletedByList[list.id] ?? 0,
       upcomingItems: upcomingByList[list.id] ?? [],
+      shares: (sharesByList.get(list.id) ?? []).map((s) => ({
+        id: s.id,
+        role: s.role,
+        user: {
+          id: s.userId,
+          email: s.email,
+          username: s.username,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          avatarUrl: s.avatarUrl,
+        },
+      })),
     }))
   }
 

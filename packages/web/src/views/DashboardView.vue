@@ -28,6 +28,33 @@
               <span class="upcoming-date">{{ formatDate(item.dueDate) }}</span>
             </div>
           </div>
+          <div v-if="list.shares?.length" class="list-shares">
+            <img
+              v-for="share in list.shares"
+              :key="share.id"
+              :src="share.user.avatarUrl || ''"
+              :title="
+                share.user.firstName
+                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+                  : share.user.email
+              "
+              class="list-share-avatar"
+              referrerpolicy="no-referrer"
+              @error="($event.target as HTMLImageElement).style.display = 'none'"
+            />
+            <span
+              v-for="share in list.shares.filter((s) => !s.user.avatarUrl)"
+              :key="'f' + share.id"
+              class="list-share-avatar list-share-fallback"
+              :title="
+                share.user.firstName
+                  ? `${share.user.firstName} ${share.user.lastName || ''}`.trim()
+                  : share.user.email
+              "
+            >
+              {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
+            </span>
+          </div>
           <span class="list-date">Created {{ formatDate(list.createdAt) }}</span>
         </div>
 
@@ -341,6 +368,31 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  .list-shares {
+    display: flex;
+    gap: 0;
+    margin-top: 0.35rem;
+  }
+  .list-share-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-surface);
+    margin-left: -4px;
+  }
+  .list-share-avatar:first-child {
+    margin-left: 0;
+  }
+  .list-share-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
   }
   .list-date {
     font-size: 0.8rem;

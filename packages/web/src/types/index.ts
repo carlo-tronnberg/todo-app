@@ -42,6 +42,7 @@ export interface TodoList {
   updatedAt: string
   uncompletedThisMonth?: number
   upcomingItems?: { id: string; title: string; dueDate: string }[]
+  shares?: ListShare[]
 }
 
 export interface TodoItem {
