@@ -3,6 +3,7 @@ import { ItemsService, UpdateItemInput } from '../../services/items.service'
 import { RecurrenceService } from '../../services/recurrence.service'
 import { CommentsService } from '../../services/comments.service'
 import { AuditService } from '../../services/audit.service'
+import { getShareRole, canWrite } from '../shares'
 
 export const itemsRoutes: FastifyPluginAsync = async (app) => {
   const itemsService = new ItemsService(app.db)
@@ -24,6 +25,10 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
     '/:itemId',
     auth,
     async (request, reply) => {
+      const item = await itemsService.findById(request.params.itemId, request.user.sub)
+      if (!item) return reply.notFound()
+      const role = await getShareRole(app.db, item.listId, request.user.sub)
+      if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
       const updated = await itemsService.update(
         request.params.itemId,
         request.user.sub,
@@ -45,6 +50,10 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
 
   // DELETE /api/items/:itemId (soft-delete via archive)
   app.delete<{ Params: { itemId: string } }>('/:itemId', auth, async (request, reply) => {
+    const item = await itemsService.findById(request.params.itemId, request.user.sub)
+    if (!item) return reply.notFound()
+    const role = await getShareRole(app.db, item.listId, request.user.sub)
+    if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
     const result = await itemsService.archive(request.params.itemId, request.user.sub)
     if (!result) return reply.notFound()
     auditService
@@ -66,6 +75,8 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
   }>('/:itemId/complete', auth, async (request, reply) => {
     const item = await itemsService.findById(request.params.itemId, request.user.sub)
     if (!item) return reply.notFound()
+    const role = await getShareRole(app.db, item.listId, request.user.sub)
+    if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
 
     const { note, amount, currency, transactionType } = request.body ?? {}
 
@@ -95,6 +106,10 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/items/:itemId/duplicate
   app.post<{ Params: { itemId: string } }>('/:itemId/duplicate', auth, async (request, reply) => {
+    const item = await itemsService.findById(request.params.itemId, request.user.sub)
+    if (!item) return reply.notFound()
+    const role = await getShareRole(app.db, item.listId, request.user.sub)
+    if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
     const copy = await itemsService.duplicate(request.params.itemId, request.user.sub)
     if (!copy) return reply.notFound()
     auditService
@@ -130,6 +145,10 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const { content } = request.body
       if (!content?.trim()) return reply.badRequest('content is required')
+      const item = await itemsService.findById(request.params.itemId, request.user.sub)
+      if (!item) return reply.notFound()
+      const role = await getShareRole(app.db, item.listId, request.user.sub)
+      if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
       const comment = await commentsService.create(request.params.itemId, request.user.sub, content)
       if (!comment) return reply.notFound()
       return reply.code(201).send(comment)

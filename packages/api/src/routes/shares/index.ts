@@ -179,17 +179,32 @@ export async function verifyListAccess(
   listId: string,
   userId: string
 ): Promise<boolean> {
+  const role = await getShareRole(db, listId, userId)
+  return role !== null
+}
+
+/** Get the user's role for a list: 'owner', 'admin', 'editor', 'viewer', or null */
+export async function getShareRole(
+  db: Database,
+  listId: string,
+  userId: string
+): Promise<string | null> {
   const [owned] = await db
     .select({ id: todoLists.id })
     .from(todoLists)
     .where(and(eq(todoLists.id, listId), eq(todoLists.userId, userId)))
     .limit(1)
-  if (owned) return true
+  if (owned) return 'owner'
 
   const [shared] = await db
-    .select({ id: listShares.id })
+    .select({ role: listShares.role })
     .from(listShares)
     .where(and(eq(listShares.listId, listId), eq(listShares.sharedWithUserId, userId)))
     .limit(1)
-  return !!shared
+  return shared?.role ?? null
+}
+
+/** Returns true if the role allows write operations */
+export function canWrite(role: string | null): boolean {
+  return role === 'owner' || role === 'admin' || role === 'editor'
 }

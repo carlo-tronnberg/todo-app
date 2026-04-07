@@ -56,7 +56,10 @@
       <div v-if="dueThisMonthCount > 0" class="due-this-month">
         {{ dueThisMonthCount }} due this month
       </div>
-      <button class="btn btn-primary btn-sm" @click="openAddModal">+ Add Item</button>
+      <button v-if="!isViewer" class="btn btn-primary btn-sm" @click="openAddModal">
+        + Add Item
+      </button>
+      <span v-if="isViewer" class="viewer-badge">View only</span>
     </div>
 
     <div v-if="itemsStore.loading" class="loading">Loading…</div>
@@ -69,6 +72,7 @@
       <div v-for="item in sortedItems" :key="item.id" class="item-wrapper">
         <TodoItemComponent
           :item="item"
+          :readonly="isViewer"
           @complete="handleComplete"
           @edit="handleEdit"
           @archive="handleArchive"
@@ -396,6 +400,7 @@
   import { transactionTypesApi } from '../api/transaction-types.api'
   import type { TransactionType } from '../types'
   import { useItemsStore } from '../stores/items.store'
+  import { useAuthStore } from '../stores/auth.store'
   import { useListsStore } from '../stores/lists.store'
   import TodoItemComponent from '../components/todo/TodoItem.vue'
   import CompletionModal from '../components/CompletionModal.vue'
@@ -441,6 +446,14 @@
   // Sharing state
   const listShares = ref<ListShare[]>([])
   const showShareModal = ref(false)
+
+  const isViewer = computed(() => {
+    if (!list.value) return false
+    const auth = useAuthStore()
+    if (list.value.userId === auth.user?.id) return false
+    const myShare = listShares.value.find((s) => s.user.id === auth.user?.id)
+    return myShare?.role === 'viewer'
+  })
 
   // Global Escape key — close the topmost open modal
   function handleEscape(e: KeyboardEvent) {
@@ -924,6 +937,11 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.75rem;
+  }
+  .viewer-badge {
+    font-size: 0.78rem;
+    color: var(--color-text-faint);
+    font-style: italic;
   }
   .back-link {
     font-size: 0.85rem;
