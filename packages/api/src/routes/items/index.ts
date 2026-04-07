@@ -145,10 +145,6 @@ export const itemsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const { content } = request.body
       if (!content?.trim()) return reply.badRequest('content is required')
-      const item = await itemsService.findById(request.params.itemId, request.user.sub)
-      if (!item) return reply.notFound()
-      const role = await getShareRole(app.db, item.listId, request.user.sub)
-      if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
       const comment = await commentsService.create(request.params.itemId, request.user.sub, content)
       if (!comment) return reply.notFound()
       return reply.code(201).send(comment)

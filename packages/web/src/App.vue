@@ -26,7 +26,11 @@
 
           <div v-if="menuOpen" class="dropdown avatar-dropdown" @click="menuOpen = false">
             <div class="dropdown-header">
-              {{ auth.user?.firstName || auth.user?.username || 'User' }}
+              {{
+                auth.user?.firstName
+                  ? `${auth.user.firstName} ${auth.user.lastName || ''}`.trim()
+                  : auth.user?.username || 'User'
+              }}
             </div>
             <router-link to="/profile" class="dropdown-item">👤 Profile</router-link>
             <router-link v-if="auth.user?.isAdmin" to="/users" class="dropdown-item">

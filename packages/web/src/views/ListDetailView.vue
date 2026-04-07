@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <!-- List tabs -->
+  <div ref="listContainer" @touchstart="onTouchStart" @touchend="onTouchEnd">
+    <!-- Sticky list tabs -->
     <div v-if="sortedAllLists.length > 1" class="list-tabs">
       <router-link
         v-for="l in sortedAllLists"
@@ -14,8 +14,8 @@
     </div>
 
     <div class="list-header">
-      <div class="list-header-top">
-        <router-link :to="backTo" class="back-link">← Back</router-link>
+      <div class="list-header-row">
+        <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
         <div class="list-header-share">
           <div class="shared-avatars">
             <img
@@ -45,11 +45,11 @@
               {{ (share.user.firstName?.[0] || share.user.username[0] || '?').toUpperCase() }}
             </span>
           </div>
-          <button class="btn btn-secondary btn-sm" @click="showShareModal = true">👥 Share</button>
+          <button v-if="canShare" class="btn btn-secondary btn-sm" @click="showShareModal = true">
+            👥 Share
+          </button>
         </div>
       </div>
-      <h1 v-if="list" class="list-title">{{ list.icon ? `${list.icon} ` : '' }}{{ list.title }}</h1>
-      <p v-if="list?.description" class="list-desc">{{ list.description }}</p>
     </div>
 
     <div class="list-actions">
@@ -422,10 +422,28 @@
   const transactionTypesList = ref<TransactionType[]>([])
 
   /** Back destination: go to the calendar (at unscheduled section) if we arrived from there */
-  const backTo = computed(() => (route.query.from === 'calendar' ? '/calendar#unscheduled' : '/'))
-
   /** If opened via editItem query param, auto-navigate back when the modal is dismissed */
   const autoBack = ref(false)
+
+  // Swipe navigation between tabs
+  const listContainer = ref<HTMLElement | null>(null)
+  let touchStartX = 0
+
+  function onTouchStart(e: TouchEvent) {
+    touchStartX = e.touches[0].clientX
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartX
+    if (Math.abs(dx) < 60) return // too short
+    const idx = sortedAllLists.value.findIndex((l) => l.id === listId)
+    if (idx === -1) return
+    if (dx > 0 && idx > 0) {
+      router.push(`/lists/${sortedAllLists.value[idx - 1].id}`)
+    } else if (dx < 0 && idx < sortedAllLists.value.length - 1) {
+      router.push(`/lists/${sortedAllLists.value[idx + 1].id}`)
+    }
+  }
 
   const list = ref<TodoList | null>(null)
   const showAddModal = ref(false)
@@ -447,13 +465,15 @@
   const listShares = ref<ListShare[]>([])
   const showShareModal = ref(false)
 
-  const isViewer = computed(() => {
-    if (!list.value) return false
+  const myRole = computed(() => {
+    if (!list.value) return null
     const auth = useAuthStore()
-    if (list.value.userId === auth.user?.id) return false
+    if (list.value.userId === auth.user?.id) return 'owner'
     const myShare = listShares.value.find((s) => s.user.id === auth.user?.id)
-    return myShare?.role === 'viewer'
+    return myShare?.role ?? null
   })
+  const isViewer = computed(() => myRole.value === 'viewer')
+  const canShare = computed(() => myRole.value === 'owner' || myRole.value === 'admin')
 
   // Global Escape key — close the topmost open modal
   function handleEscape(e: KeyboardEvent) {
@@ -617,7 +637,7 @@
     editingItem.value = null
     form.value = BLANK_FORM()
     if (autoBack.value) {
-      router.push(backTo.value)
+      router.push(route.query.from === 'calendar' ? '/calendar#unscheduled' : '/')
     }
   }
 
@@ -860,13 +880,20 @@
     display: flex;
     gap: 0.25rem;
     overflow-x: auto;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     padding-bottom: 0.25rem;
     border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 48px; /* below nav bar */
+    z-index: 50;
+    background: var(--color-bg, #fff);
+  }
+  [data-theme='dark'] .list-tabs {
+    background: var(--color-bg, #1a1a2e);
   }
   .list-tab {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.82rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.9rem;
     border-radius: 6px 6px 0 0;
     text-decoration: none;
     color: var(--color-text-muted);
@@ -891,22 +918,17 @@
   .list-header {
     margin-bottom: 0.5rem;
   }
-  .list-header-top {
+  .list-header-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.25rem;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
   .list-header-share {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
-  }
-  .list-title {
-    font-size: clamp(1rem, 4vw, 1.5rem);
-    word-break: break-word;
-    margin: 0;
   }
   .shared-avatars {
     display: flex;
@@ -942,12 +964,6 @@
     font-size: 0.78rem;
     color: var(--color-text-faint);
     font-style: italic;
-  }
-  .back-link {
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    display: block;
-    margin-bottom: 0.25rem;
   }
   .list-desc {
     color: var(--color-text-muted);
