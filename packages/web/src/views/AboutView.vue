@@ -9,17 +9,25 @@
       </p>
       <h2>Features</h2>
       <ul>
-        <li>Organize items into lists with optional icons and currencies</li>
-        <li>Recurring tasks: daily, weekly, monthly, yearly, or custom intervals</li>
-        <li>Track amounts, currencies, and transaction types per item and completion</li>
+        <li>Organize items into lists with optional emoji icons and default currencies</li>
+        <li>Share lists with other users (viewer/editor/admin roles)</li>
+        <li>
+          Recurring tasks: daily, weekly, monthly, yearly, or custom intervals with multipliers
+        </li>
+        <li>Track amounts, currencies, and configurable transaction types</li>
+        <li>Completion with amount override and transaction type</li>
+        <li>Undo/redo for edits and completions (↩/↪ or Ctrl+Z/Ctrl+Shift+Z)</li>
         <li>Calendar view with monthly grid and unscheduled items</li>
         <li>Completion history with undo support</li>
         <li>Comments on items for notes and context</li>
-        <li>Audit log of all changes</li>
-        <li>Backup and restore all data as JSON</li>
-        <li>Google SSO login</li>
-        <li>Dark/light theme</li>
-        <li>PWA — installable on mobile</li>
+        <li>Swipe between lists on mobile, sticky list tabs</li>
+        <li>URL links on items with clickable icon</li>
+        <li>Audit log with clickable item detail view</li>
+        <li>Admin panel for user management</li>
+        <li>Backup and restore all data as JSON (including shares and audit logs)</li>
+        <li>Google SSO login with profile picture</li>
+        <li>Dark/light theme (configurable in Settings)</li>
+        <li>PWA — installable on mobile, works offline</li>
       </ul>
       <p class="version">Version {{ version }}</p>
       <p class="changelog-link">
