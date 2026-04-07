@@ -56,6 +56,24 @@
       <div v-if="dueThisMonthCount > 0" class="due-this-month">
         {{ dueThisMonthCount }} due this month
       </div>
+      <div class="undo-redo-group">
+        <button
+          class="undo-btn icon-action-btn"
+          title="Undo"
+          :disabled="!undoRedo.canUndo.value"
+          @click="performUndo"
+        >
+          ↩
+        </button>
+        <button
+          class="redo-btn icon-action-btn"
+          title="Redo"
+          :disabled="!undoRedo.canRedo.value"
+          @click="performRedo"
+        >
+          ↪
+        </button>
+      </div>
       <button v-if="!isViewer" class="btn btn-primary btn-sm" @click="openAddModal">
         + Add Item
       </button>
@@ -410,8 +428,10 @@
   import { sharesApi } from '../api/shares.api'
   import type { TodoItem, TodoList, ItemComment, Completion, ListShare } from '../types'
   import { computeUrgencyLevel } from '../composables/useUrgency'
+  import { useUndoRedo } from '../composables/useUndoRedo'
 
   const route = useRoute()
+  const undoRedo = useUndoRedo()
   const router = useRouter()
   const itemsStore = useItemsStore()
   const listsStore = useListsStore()
@@ -476,21 +496,38 @@
   const canShare = computed(() => myRole.value === 'owner' || myRole.value === 'admin')
 
   // Global Escape key — close the topmost open modal
-  function handleEscape(e: KeyboardEvent) {
-    if (e.key !== 'Escape') return
-    e.preventDefault()
-    if (showShareModal.value) {
-      showShareModal.value = false
-    } else if (historyItemId.value) {
-      historyItemId.value = null
-    } else if (completingItemId.value) {
-      completingItemId.value = null
-    } else if (showAddModal.value || editingItem.value) {
-      closeModal()
+  function handleKeyboard(e: KeyboardEvent) {
+    // Escape — close topmost modal
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      if (showShareModal.value) {
+        showShareModal.value = false
+      } else if (historyItemId.value) {
+        historyItemId.value = null
+      } else if (completingItemId.value) {
+        completingItemId.value = null
+      } else if (showAddModal.value || editingItem.value) {
+        closeModal()
+      }
+      return
+    }
+    // Ctrl+Z / Cmd+Z — undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault()
+      performUndo()
+      return
+    }
+    // Ctrl+Shift+Z / Cmd+Shift+Z or Ctrl+Y — redo
+    if (
+      ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) ||
+      ((e.ctrlKey || e.metaKey) && e.key === 'y')
+    ) {
+      e.preventDefault()
+      performRedo()
     }
   }
-  onMounted(() => document.addEventListener('keydown', handleEscape))
-  onUnmounted(() => document.removeEventListener('keydown', handleEscape))
+  onMounted(() => document.addEventListener('keydown', handleKeyboard))
+  onUnmounted(() => document.removeEventListener('keydown', handleKeyboard))
 
   // Comments state
   const commentsOpen = ref<Set<string>>(new Set())
@@ -716,8 +753,24 @@
       opts.currency = completionCurrency.value || undefined
     }
     if (completionTransactionType.value) opts.transactionType = completionTransactionType.value
-    await itemsStore.completeItem(listId, completingItemId.value, opts)
+    const itemId = completingItemId.value
+    const completion = await itemsStore.completeItem(listId, itemId, opts)
     completingItemId.value = null
+
+    // Push undo for completion
+    if (completion) {
+      const completionId = completion.id
+      undoRedo.push({
+        description: 'Complete item',
+        undo: async () => {
+          await itemsApi.deleteCompletion(completionId)
+          await itemsStore.fetchItems(listId)
+        },
+        redo: async () => {
+          await itemsStore.completeItem(listId, itemId, opts)
+        },
+      })
+    }
   }
 
   async function openHistoryModal(itemId: string) {
@@ -759,6 +812,16 @@
     await sharesApi.updateRole(listId, payload.shareId, payload.role)
     const share = listShares.value.find((s) => s.id === payload.shareId)
     if (share) share.role = payload.role
+  }
+
+  async function performUndo() {
+    await undoRedo.undo()
+    await itemsStore.fetchItems(listId)
+  }
+
+  async function performRedo() {
+    await undoRedo.redo()
+    await itemsStore.fetchItems(listId)
   }
 
   async function handleArchive(itemId: string) {
@@ -828,19 +891,49 @@
       }
 
       if (isEdit) {
+        const prevItem = { ...editingItem.value! }
+        const itemId = editingItem.value!.id
         const movingList = form.value.targetListId !== listId
         if (movingList) payload.listId = form.value.targetListId
-        await itemsStore.updateItem(listId, editingItem.value!.id, payload as Partial<TodoItem>)
+        await itemsStore.updateItem(listId, itemId, payload as Partial<TodoItem>)
         if (movingList) {
           itemsStore.itemsByList[listId] = (itemsStore.itemsByList[listId] ?? []).filter(
-            (i) => i.id !== editingItem.value!.id
+            (i) => i.id !== itemId
           )
         }
+        // Push undo action for edit
+        const savedPayload = { ...payload }
+        undoRedo.push({
+          description: `Edit "${prevItem.title}"`,
+          undo: async () => {
+            await itemsStore.updateItem(listId, itemId, prevItem as Partial<TodoItem>)
+          },
+          redo: async () => {
+            await itemsStore.updateItem(listId, itemId, savedPayload as Partial<TodoItem>)
+          },
+        })
       } else {
-        await itemsStore.createItem(
+        const created = await itemsStore.createItem(
           form.value.targetListId,
           payload as Partial<TodoItem> & { title: string }
         )
+        // Push undo action for create
+        if (created) {
+          const createdId = created.id
+          const createListId = form.value.targetListId
+          undoRedo.push({
+            description: `Create "${form.value.title}"`,
+            undo: async () => {
+              await itemsStore.archiveItem(createListId, createdId)
+            },
+            redo: async () => {
+              await itemsStore.createItem(
+                createListId,
+                payload as Partial<TodoItem> & { title: string }
+              )
+            },
+          })
+        }
       }
 
       closeModal()
@@ -959,6 +1052,30 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.75rem;
+  }
+  .undo-redo-group {
+    display: flex;
+    gap: 0.2rem;
+  }
+  .icon-action-btn {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.2rem 0.45rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+  .icon-action-btn:hover:not(:disabled) {
+    background: var(--color-surface-sunken);
+    color: var(--color-text);
+  }
+  .icon-action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
   .viewer-badge {
     font-size: 0.78rem;

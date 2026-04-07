@@ -13,6 +13,20 @@
 <script setup lang="ts">
   const entries = [
     {
+      version: 'v0.8.0',
+      changes: [
+        'Undo/redo for item edits and completions (↩/↪ buttons)',
+        'Keyboard shortcuts: Ctrl+Z to undo, Ctrl+Shift+Z to redo',
+        'Create item undo (archives the created item)',
+        'Complete item undo (deletes the completion)',
+        'Edit item undo (restores previous values)',
+        'Viewers can add comments on shared lists',
+        'Only owners and admins can share lists',
+        'Sticky list tabs, swipe left/right to switch lists',
+        'Profile menu shows full name',
+      ],
+    },
+    {
       version: 'v0.7.0',
       changes: [
         'Share lists by email or username with role selection (viewer/editor/admin)',
