@@ -77,6 +77,22 @@ describe('LoginView', () => {
     expect(wrapper.text()).toContain('Invalid email or password')
   })
 
+  it('password input is type="password" by default', () => {
+    const { wrapper } = mountLogin()
+    expect(wrapper.find('#password').attributes('type')).toBe('password')
+  })
+
+  it('toggles password visibility on Show/Hide click', async () => {
+    const { wrapper } = mountLogin()
+    const toggle = wrapper.find('.password-toggle')
+    expect(toggle.text()).toBe('Show')
+    await toggle.trigger('click')
+    expect(wrapper.find('#password').attributes('type')).toBe('text')
+    expect(toggle.text()).toBe('Hide')
+    await toggle.trigger('click')
+    expect(wrapper.find('#password').attributes('type')).toBe('password')
+  })
+
   it('disables submit button while loading', async () => {
     let resolve!: (v: any) => void
     mockAuthApi.login.mockReturnValue(new Promise((r) => (resolve = r)))

@@ -16,14 +16,19 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            class="form-input"
-            autocomplete="current-password"
-            required
-          />
+          <div class="password-wrapper">
+            <input
+              id="password"
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              class="form-input"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="password-toggle" @click="showPassword = !showPassword">
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
         </div>
         <p v-if="errorMsg" class="error-text" style="margin-bottom: 0.75rem">{{ errorMsg }}</p>
         <button type="submit" class="btn btn-primary" style="width: 100%" :disabled="loading">
@@ -48,6 +53,7 @@
   const form = ref({ email: '', password: '' })
   const loading = ref(false)
   const errorMsg = ref('')
+  const showPassword = ref(false)
 
   async function handleSubmit() {
     loading.value = true
@@ -114,6 +120,27 @@
   }
   .btn-google:hover {
     background: var(--color-surface-sunken);
+  }
+  .password-wrapper {
+    position: relative;
+  }
+  .password-wrapper .form-input {
+    padding-right: 4rem;
+  }
+  .password-toggle {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    padding: 0.2rem 0.3rem;
+  }
+  .password-toggle:hover {
+    color: var(--color-text);
   }
   .auth-footer {
     text-align: center;
