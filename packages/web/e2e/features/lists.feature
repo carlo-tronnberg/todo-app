@@ -38,6 +38,7 @@ Feature: List Management
 
   Scenario: Navigate to list detail
     Given I have a list called "My Tasks"
+    And I have a list called "Other List"
     When I click on the list "My Tasks"
     Then I should be on the list detail page for "My Tasks"
     And I should see "My Tasks" as the list heading

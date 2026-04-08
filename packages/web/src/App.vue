@@ -4,6 +4,7 @@
       <div class="nav-top-row">
         <router-link to="/" class="nav-brand">📋 Todo Tracker</router-link>
         <div class="nav-right">
+          <span class="nav-username">{{ auth.user?.firstName || auth.user?.username || '' }}</span>
           <button class="avatar-btn" @click="toggleMenu">
             <img
               v-if="auth.user?.avatarUrl"
@@ -48,6 +49,7 @@
     <main class="main-content">
       <router-view :key="$route.fullPath" />
     </main>
+    <div class="app-version">v{{ appVersion }}</div>
   </div>
 </template>
 
@@ -59,6 +61,7 @@
 
   const auth = useAuthStore()
   const router = useRouter()
+  const appVersion = __APP_VERSION__
 
   const menuOpen = ref(false)
   const navBar = ref<HTMLElement | null>(null)
@@ -165,6 +168,14 @@
   .nav-right {
     position: relative;
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .nav-username {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.88rem;
+    white-space: nowrap;
   }
   .avatar-btn {
     background: none;
@@ -243,6 +254,15 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
+  }
+  .app-version {
+    position: fixed;
+    bottom: 0.4rem;
+    right: 0.6rem;
+    font-size: 0.7rem;
+    color: var(--color-text-muted, #94a3b8);
+    pointer-events: none;
+    z-index: 50;
   }
 
   @media (max-width: 600px) {

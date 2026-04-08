@@ -30,14 +30,14 @@ Given(
   async function (this: TodoWorld, listTitle: string) {
     const list = this.getList(listTitle)
     await this.page.goto(`${this.baseUrl}/lists/${list.id}`)
-    await this.page.waitForSelector('.list-header', { timeout: 10_000 })
+    await this.page.waitForSelector('.list-actions', { timeout: 10_000 })
   }
 )
 
 // ── Generic assertions ─────────────────────────────────────────────────
 
 Then('I should see {string} as the page heading', async function (this: TodoWorld, text: string) {
-  await expect(this.page.locator('h1')).toContainText(text)
+  await expect(this.page.locator('h1, h2').first()).toContainText(text)
 })
 
 Then('I should see {string} as a success message', async function (this: TodoWorld, text: string) {

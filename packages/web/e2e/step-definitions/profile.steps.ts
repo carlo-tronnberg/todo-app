@@ -7,6 +7,8 @@ import { TodoWorld } from '../support/world'
 When('I navigate to the profile page', async function (this: TodoWorld) {
   await this.page.goto(`${this.baseUrl}/profile`)
   await this.page.waitForSelector('.profile-page')
+  // Wait for auth.user to load and populate the email field (fetchMe is async)
+  await expect(this.page.locator('input[type="email"]')).not.toHaveValue('', { timeout: 5_000 })
 })
 
 // ── Personal details form ──────────────────────────────────────────────

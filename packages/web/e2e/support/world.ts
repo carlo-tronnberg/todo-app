@@ -1,5 +1,5 @@
 import { setWorldConstructor, World } from '@cucumber/cucumber'
-import { Browser, BrowserContext, Page, chromium } from 'playwright'
+import { Browser, BrowserContext, Page } from 'playwright'
 
 export interface TestList {
   id: string
@@ -17,7 +17,7 @@ export class TodoWorld extends World {
   browser!: Browser
   context!: BrowserContext
   page!: Page
-  baseUrl: string = process.env.E2E_BASE_URL ?? 'http://localhost:5173'
+  baseUrl: string = process.env.E2E_BASE_URL ?? 'http://localhost:5173/todo'
   apiUrl: string = process.env.E2E_API_URL ?? 'http://localhost:3000'
 
   // Auth state for API calls
@@ -32,20 +32,17 @@ export class TodoWorld extends World {
   lists: Map<string, TestList> = new Map()
   items: Map<string, TestItem> = new Map()
 
-  async openBrowser() {
-    this.browser = await chromium.launch({
-      headless: process.env.E2E_HEADLESS !== 'false',
-    })
-    this.context = await this.browser.newContext({
+  async openContext(browser: Browser) {
+    this.browser = browser
+    this.context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
     })
     this.page = await this.context.newPage()
   }
 
-  async closeBrowser() {
+  async closeContext() {
     await this.page?.close()
     await this.context?.close()
-    await this.browser?.close()
   }
 
   // ── API helpers ──────────────────────────────────────────────────────

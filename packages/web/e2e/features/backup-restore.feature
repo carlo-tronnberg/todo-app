@@ -9,11 +9,11 @@ Feature: Backup and Restore
   Scenario: Download a backup
     Given I have a list called "Important"
     And I have an item called "Task A" in list "Important"
-    When I navigate to the profile page
+    When I navigate to the settings page
     And I click the "Download backup" button
     Then a backup file should be downloaded
 
   Scenario: Restore from a backup file
-    When I navigate to the profile page
+    When I navigate to the settings page
     And I upload a valid backup file with 2 lists and 4 items
     Then I should see a restore success message with "2" lists and "4" items

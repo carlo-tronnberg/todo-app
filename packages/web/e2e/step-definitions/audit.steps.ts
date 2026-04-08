@@ -29,5 +29,5 @@ Then(
 
 Then('I should see more audit entries', async function (this: TodoWorld) {
   const rows = this.page.locator('tbody tr')
-  expect(await rows.count()).toBeGreaterThan(100)
+  await expect.poll(async () => rows.count(), { timeout: 10_000 }).toBeGreaterThan(100)
 })

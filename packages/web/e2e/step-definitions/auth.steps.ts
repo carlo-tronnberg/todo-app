@@ -67,7 +67,17 @@ When('I click the {string} button', async function (this: TodoWorld, label: stri
     await modalBtn.click()
     return
   }
-  await this.page.click(`button:has-text("${label}")`)
+  const btn = this.page.locator(`button:has-text("${label}")`)
+  // Wait for button to be attached to DOM (handles v-if dropdowns)
+  const inDom = await btn
+    .waitFor({ state: 'attached', timeout: 2_000 })
+    .then(() => true)
+    .catch(() => false)
+  if (!inDom) {
+    // Button not in DOM — likely inside a closed avatar dropdown
+    await this.page.locator('.avatar-btn').click()
+  }
+  await btn.click()
 })
 
 // ── Navigation assertions ──────────────────────────────────────────────

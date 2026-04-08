@@ -69,12 +69,12 @@ Then('I should not see {string} in the lists', async function (this: TodoWorld, 
 
 Then(
   'I should be on the list detail page for {string}',
-  async function (this: TodoWorld, listTitle: string) {
-    await this.page.waitForSelector('.list-header')
+  async function (this: TodoWorld, _listTitle: string) {
+    await this.page.waitForSelector('.list-actions')
     expect(this.page.url()).toContain('/lists/')
   }
 )
 
 Then('I should see {string} as the list heading', async function (this: TodoWorld, title: string) {
-  await expect(this.page.locator('.list-header h1')).toContainText(title)
+  await expect(this.page.locator('.list-tab.active')).toContainText(title)
 })

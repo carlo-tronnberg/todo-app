@@ -85,29 +85,29 @@ When('I select currency {string}', async function (this: TodoWorld, currency: st
 
 When('I select recurrence type {string}', async function (this: TodoWorld, recurrenceType: string) {
   const modal = this.page.locator('.modal')
-  const recurrenceGroup = modal.locator('.form-group:has(.form-label:has-text("Recurrence"))')
-  await recurrenceGroup.locator('select.form-input').selectOption(recurrenceType)
+  const recurrenceCol = modal.locator('.form-col:has(.form-label:has-text("Recurrence"))')
+  await recurrenceCol.locator('select.form-input').selectOption(recurrenceType)
 })
 
 When('I set interval days to {string}', async function (this: TodoWorld, days: string) {
   const modal = this.page.locator('.modal')
-  const intervalGroup = modal.locator('.form-group:has(.form-label:has-text("Interval"))')
-  await intervalGroup.locator('input[type="number"]').fill(days)
+  const col = modal.locator('.form-col:has(.form-label:has-text("Days"))')
+  await col.locator('input[type="number"]').fill(days)
 })
 
 When(
   'I set the recurrence interval to {string}',
   async function (this: TodoWorld, interval: string) {
     const modal = this.page.locator('.modal')
-    const intervalGroup = modal.locator('.form-group:has(.form-label:has-text("Repeat every"))')
-    await intervalGroup.locator('input[type="number"]').fill(interval)
+    const col = modal.locator('.form-col:has(.form-label:has-text("Every"))')
+    await col.locator('input[type="number"]').fill(interval)
   }
 )
 
 When('I set day of month to {string}', async function (this: TodoWorld, day: string) {
   const modal = this.page.locator('.modal')
-  const dayGroup = modal.locator('.form-group:has(.form-label:has-text("Day of month"))')
-  await dayGroup.locator('input[type="number"]').fill(day)
+  const col = modal.locator('.form-col:has(.form-label:has-text("Day"))')
+  await col.locator('input[type="number"]').fill(day)
 })
 
 // ── Item actions ───────────────────────────────────────────────────────

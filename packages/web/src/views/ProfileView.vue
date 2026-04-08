@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, ref, onMounted } from 'vue'
+  import { reactive, ref, watch } from 'vue'
   import { useAuthStore } from '../stores/auth.store'
   import { authApi } from '../api/auth.api'
 
@@ -113,12 +113,19 @@
   const pwSuccess = ref(false)
   const pwError = ref('')
 
-  onMounted(() => {
-    profileForm.email = auth.user?.email ?? ''
-    profileForm.firstName = auth.user?.firstName ?? ''
-    profileForm.lastName = auth.user?.lastName ?? ''
-    profileForm.phone = auth.user?.phone ?? ''
-  })
+  // auth.user loads asynchronously (fetchMe); populate form when it arrives
+  watch(
+    () => auth.user,
+    (user) => {
+      if (user) {
+        profileForm.email = user.email
+        profileForm.firstName = user.firstName ?? ''
+        profileForm.lastName = user.lastName ?? ''
+        profileForm.phone = user.phone ?? ''
+      }
+    },
+    { immediate: true }
+  )
 
   async function saveProfile() {
     profileError.value = ''

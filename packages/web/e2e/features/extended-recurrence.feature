@@ -27,7 +27,7 @@ Feature: Extended Recurrence Options
     And I set the recurrence interval to "3"
     And I click the "Add" button
     Then I should see "Quarterly report" in the items list
-    And I should see the recurrence label "Every 3 months"
+    And I should see the recurrence label "Every 3 months on day 1"
 
   Scenario: Create an item recurring every 2 years
     When I click the "+ Add Item" button

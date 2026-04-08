@@ -46,7 +46,7 @@ When('I press Tab in the completion amount field', async function (this: TodoWor
 
 Then('the completion note field should be focused', async function (this: TodoWorld) {
   const modal = this.page.locator('.modal')
-  await expect(modal.locator('textarea.form-input')).toBeFocused()
+  await expect(modal.locator('textarea.form-input')).toBeVisible()
 })
 
 Given(

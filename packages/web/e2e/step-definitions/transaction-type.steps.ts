@@ -13,9 +13,7 @@ Then(
 
 When('I select transaction type {string}', async function (this: TodoWorld, value: string) {
   const modal = this.page.locator('.modal')
-  const selects = modal.locator('select.form-input')
-  // The transaction type select is the last one in the amount row
-  const txSelect = selects.last()
+  const txSelect = modal.locator('.form-col:has(.form-label:has-text("Type")) select.form-input')
   await txSelect.selectOption(value)
 })
 

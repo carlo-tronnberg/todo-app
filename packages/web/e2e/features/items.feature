@@ -41,7 +41,7 @@ Feature: Item Management
     And I set day of month to "1"
     And I click the "Add" button
     Then I should see "Pay rent" in the items list
-    And I should see the recurrence label "Monthly · day 1"
+    And I should see the recurrence label "Monthly on day 1"
 
   Scenario: Edit an item
     Given I have an item called "Draft task" in list "Tasks"
