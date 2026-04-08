@@ -169,6 +169,65 @@ describe('Lists Routes (extended)', () => {
       })
       expect(res.statusCode).toBe(404)
     })
+
+    it('returns 403 when viewer tries to update', async () => {
+      const uid = Date.now()
+      const viewerRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `viewer+${uid}@example.com`,
+          username: `viewer${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      const viewerToken = viewerRes.json().token
+
+      await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/shares`,
+        headers: auth(),
+        payload: { emailOrUsername: `viewer+${uid}@example.com`, role: 'viewer' },
+      })
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/lists/${listId}`,
+        headers: { authorization: `Bearer ${viewerToken}` },
+        payload: { title: 'Hacked' },
+      })
+      expect(res.statusCode).toBe(403)
+    })
+
+    it('allows editor to update list', async () => {
+      const uid = Date.now()
+      const editorRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `editor+${uid}@example.com`,
+          username: `editor${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      const editorToken = editorRes.json().token
+
+      await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/shares`,
+        headers: auth(),
+        payload: { emailOrUsername: `editor+${uid}@example.com`, role: 'editor' },
+      })
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/lists/${listId}`,
+        headers: { authorization: `Bearer ${editorToken}` },
+        payload: { title: 'Editor Updated' },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().title).toBe('Editor Updated')
+    })
   })
 
   describe('DELETE /api/lists/:listId', () => {
@@ -196,6 +255,62 @@ describe('Lists Routes (extended)', () => {
         headers: auth(),
       })
       expect(res.statusCode).toBe(404)
+    })
+
+    it('returns 403 when viewer tries to delete', async () => {
+      const uid = Date.now()
+      const viewerRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `vdel+${uid}@example.com`,
+          username: `vdel${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      const viewerToken = viewerRes.json().token
+
+      await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/shares`,
+        headers: auth(),
+        payload: { emailOrUsername: `vdel+${uid}@example.com`, role: 'viewer' },
+      })
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/lists/${listId}`,
+        headers: { authorization: `Bearer ${viewerToken}` },
+      })
+      expect(res.statusCode).toBe(403)
+    })
+
+    it('returns 403 when editor tries to delete', async () => {
+      const uid = Date.now()
+      const editorRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `edel+${uid}@example.com`,
+          username: `edel${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      const editorToken = editorRes.json().token
+
+      await app.inject({
+        method: 'POST',
+        url: `/api/lists/${listId}/shares`,
+        headers: auth(),
+        payload: { emailOrUsername: `edel+${uid}@example.com`, role: 'editor' },
+      })
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/lists/${listId}`,
+        headers: { authorization: `Bearer ${editorToken}` },
+      })
+      expect(res.statusCode).toBe(403)
     })
   })
 

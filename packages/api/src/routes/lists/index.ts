@@ -34,12 +34,15 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
     return list
   })
 
-  // PATCH /api/lists/:listId
+  // PATCH /api/lists/:listId — owner/editor/admin only
   app.patch<{
     Params: { listId: string }
     Body: { title?: string; description?: string }
   }>('/:listId', auth, async (request, reply) => {
-    const updated = await listsService.update(request.params.listId, request.user.sub, request.body)
+    const role = await getShareRole(app.db, request.params.listId, request.user.sub)
+    if (!role) return reply.notFound()
+    if (!canWrite(role)) return reply.forbidden('Viewer access is read-only')
+    const updated = await listsService.update(request.params.listId, request.body)
     if (!updated) return reply.notFound()
     auditService
       .log(
@@ -53,8 +56,11 @@ export const listsRoutes: FastifyPluginAsync = async (app) => {
     return updated
   })
 
-  // DELETE /api/lists/:listId
+  // DELETE /api/lists/:listId — owner only
   app.delete<{ Params: { listId: string } }>('/:listId', auth, async (request, reply) => {
+    const role = await getShareRole(app.db, request.params.listId, request.user.sub)
+    if (!role) return reply.notFound()
+    if (role !== 'owner') return reply.forbidden('Only the list owner can delete it')
     const list = await listsService.findById(request.params.listId, request.user.sub)
     if (!list) return reply.notFound()
     await listsService.delete(request.params.listId, request.user.sub)

@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import DashboardView from '../../../src/views/DashboardView.vue'
 import { useListsStore } from '../../../src/stores/lists.store'
+import { useAuthStore } from '../../../src/stores/auth.store'
 
 const { mockListsApi } = vi.hoisted(() => ({
   mockListsApi: {
@@ -49,6 +50,9 @@ afterEach(() => {
 
 function mountDashboard() {
   const router = makeRouter()
+  // Simulate owner logged in as 'u1' so Edit/Delete buttons are visible for owned lists
+  const auth = useAuthStore()
+  auth.user = { id: 'u1', email: 'u1@example.com', username: 'u1', createdAt: '2024-01-01' }
   const wrapper = mount(DashboardView, {
     global: { plugins: [pinia, router] },
     attachTo: document.body,
