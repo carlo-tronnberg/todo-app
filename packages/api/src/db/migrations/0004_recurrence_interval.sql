@@ -1,1 +1,1 @@
-ALTER TABLE "recurrence_rules" ADD COLUMN "interval" integer DEFAULT 1 NOT NULL;
+ALTER TABLE "recurrence_rules" ADD COLUMN IF NOT EXISTS "interval" integer DEFAULT 1 NOT NULL;

@@ -1,4 +1,4 @@
-CREATE TABLE "list_shares" (
+CREATE TABLE IF NOT EXISTS "list_shares" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "list_id" uuid NOT NULL REFERENCES "todo_lists"("id") ON DELETE CASCADE,
   "shared_with_user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
