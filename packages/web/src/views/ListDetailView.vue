@@ -49,8 +49,20 @@
     </div>
 
     <div class="list-actions">
-      <div v-if="dueThisMonthCount > 0" class="due-this-month">
-        {{ dueThisMonthCount }} due this month
+      <div v-if="dueThisMonthCount > 0 || list?.owner" class="due-this-month">
+        <span v-if="dueThisMonthCount > 0">{{ dueThisMonthCount }} due this month</span>
+        <template v-if="list?.owner">
+          <img
+            v-if="list.owner.avatarUrl"
+            :src="list.owner.avatarUrl"
+            class="owner-avatar"
+            :title="listOwnerTitle"
+            referrerpolicy="no-referrer"
+          />
+          <span v-else class="owner-avatar owner-avatar-fallback" :title="listOwnerTitle">
+            {{ (list.owner.firstName?.[0] || list.owner.username[0] || '?').toUpperCase() }}
+          </span>
+        </template>
       </div>
       <div class="undo-redo-group">
         <button
@@ -489,6 +501,12 @@
   // Sharing state
   const listShares = ref<ListShare[]>([])
   const showShareModal = ref(false)
+
+  const listOwnerTitle = computed(() => {
+    const o = list.value?.owner
+    if (!o) return ''
+    return o.firstName ? `${o.firstName} ${o.lastName || ''}`.trim() : o.email
+  })
 
   const myRole = computed(() => {
     if (!list.value) return null
@@ -1088,7 +1106,9 @@
     font-style: italic;
   }
   .due-this-month {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.2rem 0.65rem;
@@ -1096,6 +1116,23 @@
     background: var(--urgency-high-bg);
     color: var(--urgency-high-text);
     margin-bottom: 0.5rem;
+  }
+  .owner-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    cursor: default;
+    vertical-align: middle;
+  }
+  .owner-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.15);
+    font-size: 0.6rem;
+    font-weight: 700;
   }
   .items-list {
     display: flex;

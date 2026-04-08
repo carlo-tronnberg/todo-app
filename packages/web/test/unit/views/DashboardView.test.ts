@@ -234,6 +234,60 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Task A')
   })
 
+  it('shows owner avatar for shared list with firstName', async () => {
+    const sharedList = {
+      ...fakeList('l2', 'Shared'),
+      userId: 'other-user',
+      owner: {
+        id: 'other-user',
+        email: 'owner@example.com',
+        username: 'owner',
+        firstName: 'Alice',
+        lastName: 'Smith',
+        avatarUrl: null,
+      },
+    }
+    mockListsApi.getAll.mockResolvedValue([sharedList])
+    const { wrapper } = mountDashboard()
+    await flushPromises()
+    const fallback = wrapper.find('.owner-avatar-fallback')
+    expect(fallback.exists()).toBe(true)
+    expect(fallback.attributes('title')).toBe('Alice Smith')
+  })
+
+  it('shows owner email in title when firstName is null', async () => {
+    const sharedList = {
+      ...fakeList('l2', 'Shared'),
+      userId: 'other-user',
+      owner: {
+        id: 'other-user',
+        email: 'owner@example.com',
+        username: 'owner',
+        firstName: null,
+        lastName: null,
+        avatarUrl: null,
+      },
+    }
+    mockListsApi.getAll.mockResolvedValue([sharedList])
+    const { wrapper } = mountDashboard()
+    await flushPromises()
+    const fallback = wrapper.find('.owner-avatar-fallback')
+    expect(fallback.attributes('title')).toBe('owner@example.com')
+  })
+
+  it('handles Escape key to close modals', async () => {
+    mockListsApi.getAll.mockResolvedValue([])
+    const { wrapper } = mountDashboard()
+    await flushPromises()
+    // Open create modal
+    await wrapper.find('button.btn-primary').trigger('click')
+    expect(wrapper.find('.modal').exists()).toBe(true)
+    // Trigger Escape
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+    expect(wrapper.find('.modal').exists()).toBe(false)
+  })
+
   it('handleUpdateList does nothing when editingList is null (guard branch)', async () => {
     mockListsApi.getAll.mockResolvedValue([])
     mountDashboard()
