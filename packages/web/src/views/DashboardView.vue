@@ -60,10 +60,16 @@
 
         <!-- Per-card action bar -->
         <div class="list-card-actions">
-          <button class="card-action-btn" title="Edit list" @click.stop="openEdit(list)">
+          <button
+            v-if="canEditList(list)"
+            class="card-action-btn"
+            title="Edit list"
+            @click.stop="openEdit(list)"
+          >
             ✎ Edit
           </button>
           <button
+            v-if="canDeleteList(list)"
             class="card-action-btn card-action-btn--danger"
             title="Delete list"
             @click.stop="openDelete(list)"
@@ -208,9 +214,26 @@
   import { useEscapeKey } from '../composables/useEscapeKey'
   import { format } from 'date-fns'
   import { useListsStore } from '../stores/lists.store'
+  import { useAuthStore } from '../stores/auth.store'
   import type { TodoList } from '../types'
 
   const listsStore = useListsStore()
+  const auth = useAuthStore()
+
+  function myRoleForList(list: TodoList): string | null {
+    if (list.userId === auth.user?.id) return 'owner'
+    const myShare = list.shares?.find((s) => s.user.id === auth.user?.id)
+    return myShare?.role ?? null
+  }
+
+  function canEditList(list: TodoList): boolean {
+    const role = myRoleForList(list)
+    return role === 'owner' || role === 'editor' || role === 'admin'
+  }
+
+  function canDeleteList(list: TodoList): boolean {
+    return myRoleForList(list) === 'owner'
+  }
 
   const sortedLists = computed(() =>
     [...listsStore.lists].sort((a, b) => a.title.localeCompare(b.title))

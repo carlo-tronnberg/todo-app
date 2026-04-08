@@ -221,11 +221,11 @@ export class ListsService {
     return list
   }
 
-  async update(id: string, userId: string, input: UpdateListInput) {
+  async update(id: string, input: UpdateListInput) {
     const [updated] = await this.db
       .update(todoLists)
       .set({ ...input, updatedAt: new Date() })
-      .where(and(eq(todoLists.id, id), eq(todoLists.userId, userId)))
+      .where(eq(todoLists.id, id))
       .returning()
 
     /* c8 ignore next */
