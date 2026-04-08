@@ -99,10 +99,37 @@ export class ListsService {
       sharesByList.set(s.listId, arr)
     }
 
+    // Fetch owner info for shared lists (owned by someone else)
+    const foreignOwnerIds = [...new Set(sharedLists.map((l) => l.userId))]
+    type OwnerInfo = {
+      id: string
+      email: string
+      username: string
+      firstName: string | null
+      lastName: string | null
+      avatarUrl: string | null
+    }
+    let ownerById: Record<string, OwnerInfo> = {}
+    if (foreignOwnerIds.length > 0) {
+      const owners = await this.db
+        .select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(users)
+        .where(inArray(users.id, foreignOwnerIds))
+      ownerById = Object.fromEntries(owners.map((o) => [o.id, o]))
+    }
+
     return lists.map((list) => ({
       ...list,
       uncompletedThisMonth: uncompletedByList[list.id] ?? 0,
       upcomingItems: upcomingByList[list.id] ?? [],
+      owner: list.userId !== userId ? (ownerById[list.userId] ?? null) : null,
       shares: (sharesByList.get(list.id) ?? []).map((s) => ({
         id: s.id,
         role: s.role,

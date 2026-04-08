@@ -31,6 +31,15 @@ export interface User {
   createdAt: string
 }
 
+export interface ListOwner {
+  id: string
+  email: string
+  username: string
+  firstName: string | null
+  lastName: string | null
+  avatarUrl: string | null
+}
+
 export interface TodoList {
   id: string
   userId: string
@@ -42,6 +51,7 @@ export interface TodoList {
   updatedAt: string
   uncompletedThisMonth?: number
   upcomingItems?: { id: string; title: string; dueDate: string }[]
+  owner?: ListOwner | null
   shares?: ListShare[]
 }
 

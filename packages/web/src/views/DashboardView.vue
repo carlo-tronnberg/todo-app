@@ -21,6 +21,22 @@
             <span v-if="list.uncompletedThisMonth" class="stat-badge">
               {{ list.uncompletedThisMonth }} due this month
             </span>
+            <template v-if="list.owner">
+              <img
+                v-if="list.owner.avatarUrl"
+                :src="list.owner.avatarUrl"
+                class="owner-avatar"
+                :title="ownerTitle(list.owner)"
+                referrerpolicy="no-referrer"
+              />
+              <span
+                v-else
+                class="owner-avatar owner-avatar-fallback"
+                :title="ownerTitle(list.owner)"
+              >
+                {{ (list.owner.firstName?.[0] || list.owner.username[0] || '?').toUpperCase() }}
+              </span>
+            </template>
           </div>
           <div v-if="list.upcomingItems?.length" class="upcoming-items">
             <div v-for="item in list.upcomingItems" :key="item.id" class="upcoming-chip">
@@ -215,7 +231,7 @@
   import { format } from 'date-fns'
   import { useListsStore } from '../stores/lists.store'
   import { useAuthStore } from '../stores/auth.store'
-  import type { TodoList } from '../types'
+  import type { TodoList, ListOwner } from '../types'
 
   const listsStore = useListsStore()
   const auth = useAuthStore()
@@ -259,6 +275,10 @@
   // ── Helpers ─────────────────────────────────────────────────────────────────
   function formatDate(iso: string) {
     return format(new Date(iso), 'dd MMM yyyy')
+  }
+
+  function ownerTitle(owner: ListOwner): string {
+    return owner.firstName ? `${owner.firstName} ${owner.lastName || ''}`.trim() : owner.email
   }
 
   useEscapeKey(() => {
@@ -453,8 +473,29 @@
 
   /* ── List stats ── */
   .list-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin: 0.25rem 0 0.4rem;
     min-height: 1.2em;
+  }
+  .owner-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-left: auto;
+    flex-shrink: 0;
+    cursor: default;
+  }
+  .owner-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
+    font-size: 0.65rem;
+    font-weight: 700;
   }
   .stat-badge {
     display: inline-block;

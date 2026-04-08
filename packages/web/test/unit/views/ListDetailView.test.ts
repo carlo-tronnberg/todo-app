@@ -1070,6 +1070,55 @@ describe('ListDetailView', () => {
     })
   })
 
+  describe('owner avatar', () => {
+    it('shows owner avatar fallback with title for shared list with firstName', async () => {
+      const sharedList = {
+        ...fakeList,
+        userId: 'other-user',
+        owner: {
+          id: 'other-user',
+          email: 'owner@example.com',
+          username: 'owner',
+          firstName: 'Alice',
+          lastName: 'Smith',
+          avatarUrl: null,
+        },
+      }
+      mockListsApi.getOne.mockResolvedValue(sharedList)
+      mockListsApi.getAll.mockResolvedValue([sharedList])
+      mockListsApi.getItems.mockResolvedValue([])
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+      const fallback = wrapper.find('.owner-avatar-fallback')
+      expect(fallback.exists()).toBe(true)
+      expect(fallback.attributes('title')).toBe('Alice Smith')
+    })
+
+    it('uses email as title when owner has no firstName', async () => {
+      const sharedList = {
+        ...fakeList,
+        userId: 'other-user',
+        owner: {
+          id: 'other-user',
+          email: 'owner@example.com',
+          username: 'owner',
+          firstName: null,
+          lastName: null,
+          avatarUrl: null,
+        },
+      }
+      mockListsApi.getOne.mockResolvedValue(sharedList)
+      mockListsApi.getAll.mockResolvedValue([sharedList])
+      mockListsApi.getItems.mockResolvedValue([])
+      const router = await makeRouter()
+      const wrapper = mount(ListDetailView, { global: { plugins: [pinia, router] } })
+      await flushPromises()
+      const fallback = wrapper.find('.owner-avatar-fallback')
+      expect(fallback.attributes('title')).toBe('owner@example.com')
+    })
+  })
+
   describe('keyboard shortcuts', () => {
     it('Escape closes modal', async () => {
       mockListsApi.getOne.mockResolvedValue(fakeList)
