@@ -1,1 +1,1 @@
-ALTER TABLE "todo_items" ADD COLUMN "url" text;
+ALTER TABLE "todo_items" ADD COLUMN IF NOT EXISTS "url" text;
