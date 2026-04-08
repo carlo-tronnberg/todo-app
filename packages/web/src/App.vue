@@ -29,6 +29,9 @@
             <router-link v-if="auth.user?.isAdmin" to="/users" class="dropdown-item">
               👥 Users
             </router-link>
+            <router-link v-if="auth.user?.isAdmin" to="/admin/lists" class="dropdown-item">
+              📋 Lists
+            </router-link>
             <router-link to="/settings" class="dropdown-item">⚙ Settings</router-link>
             <router-link to="/about" class="dropdown-item">ℹ️ About</router-link>
             <button class="dropdown-item dropdown-logout" @click="handleLogout">🚪 Logout</button>

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { FastifyInstance } from 'fastify'
 import { eq } from 'drizzle-orm'
 import { getTestApp, closeTestApp } from '../../helpers/app'
-import { users } from '../../../src/db'
+import { users, todoLists } from '../../../src/db'
 
 describe('Admin Routes', () => {
   let app: FastifyInstance
@@ -99,5 +99,43 @@ describe('Admin Routes', () => {
       payload: { isAdmin: true },
     })
     expect(res.statusCode).toBe(403)
+  })
+
+  it('GET /api/admin/lists returns 403 for non-admin', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/lists',
+      headers: { authorization: `Bearer ${regularToken}` },
+    })
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('GET /api/admin/lists returns all lists with owner and item count', async () => {
+    const uid = Date.now()
+
+    // Create a list for the regular user
+    const [list] = await app.db
+      .insert(todoLists)
+      .values({ userId: adminUserId, title: `Test List ${uid}` })
+      .returning({ id: todoLists.id })
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/lists',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(Array.isArray(body)).toBe(true)
+
+    const found = body.find((l: { id: string }) => l.id === list.id)
+    expect(found).toBeDefined()
+    expect(found.owner.id).toBe(adminUserId)
+    expect(found.shares).toEqual([])
+    expect(typeof found.itemCount).toBe('number')
+
+    // Cleanup
+    await app.db.delete(todoLists).where(eq(todoLists.id, list.id))
   })
 })
