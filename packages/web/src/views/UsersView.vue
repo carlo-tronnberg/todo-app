@@ -1,6 +1,6 @@
 <template>
   <div class="users-page">
-    <h1>Users</h1>
+    <h1>All Users</h1>
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else-if="error" class="error-text">{{ error }}</div>
