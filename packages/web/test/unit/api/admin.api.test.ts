@@ -30,3 +30,29 @@ describe('adminApi.updateUser', () => {
     expect(result.isAdmin).toBe(true)
   })
 })
+
+describe('adminApi.getLists', () => {
+  it('GETs /admin/lists', async () => {
+    const fakeList = {
+      id: 'l1',
+      title: 'Shopping',
+      icon: null,
+      description: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      owner: {
+        id: 'u1',
+        email: 'a@b.com',
+        username: 'alice',
+        firstName: 'Alice',
+        lastName: null,
+        avatarUrl: null,
+      },
+      shares: [],
+      itemCount: 3,
+    }
+    mockGet.mockResolvedValue({ data: [fakeList] })
+    const result = await adminApi.getLists()
+    expect(mockGet).toHaveBeenCalledWith('/admin/lists')
+    expect(result).toEqual([fakeList])
+  })
+})

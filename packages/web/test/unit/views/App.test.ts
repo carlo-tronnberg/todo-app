@@ -29,6 +29,7 @@ function makeRouter() {
       { path: '/settings', component: { template: '<div>Settings</div>' } },
       { path: '/about', component: { template: '<div>About</div>' } },
       { path: '/users', component: { template: '<div>Users</div>' } },
+      { path: '/admin/lists', component: { template: '<div>AdminLists</div>' } },
       { path: '/changelog', component: { template: '<div>Changelog</div>' } },
     ],
   })
@@ -138,6 +139,46 @@ describe('App.vue', () => {
     expect(wrapper.find('.avatar-dropdown').exists()).toBe(true)
     expect(wrapper.text()).toContain('Logout')
     expect(wrapper.text()).toContain('Profile')
+  })
+
+  it('avatar dropdown shows admin-only Users and Lists links for admin user', async () => {
+    const adminUser = {
+      id: 'u1',
+      email: 'a@b.com',
+      username: 'alice',
+      isAdmin: true,
+      createdAt: '2024-01-01',
+    }
+    mockAuthApi.me.mockResolvedValue(adminUser)
+    localStorage.setItem('auth_token', 'valid-token')
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const { wrapper } = mountApp()
+    await flushPromises()
+    await wrapper.find('.avatar-btn').trigger('click')
+    const dropdown = wrapper.find('.avatar-dropdown')
+    expect(dropdown.text()).toContain('Users')
+    expect(dropdown.text()).toContain('Lists')
+  })
+
+  it('avatar dropdown does not show Users or Lists for non-admin', async () => {
+    const regularUser = {
+      id: 'u1',
+      email: 'a@b.com',
+      username: 'alice',
+      isAdmin: false,
+      createdAt: '2024-01-01',
+    }
+    mockAuthApi.me.mockResolvedValue(regularUser)
+    localStorage.setItem('auth_token', 'valid-token')
+    pinia = createPinia()
+    setActivePinia(pinia)
+    const { wrapper } = mountApp()
+    await flushPromises()
+    await wrapper.find('.avatar-btn').trigger('click')
+    const dropdown = wrapper.find('.avatar-dropdown')
+    expect(dropdown.text()).not.toContain('Users')
+    expect(dropdown.text()).not.toContain('Lists')
   })
 
   it('avatar dropdown contains profile, settings, about and logout', async () => {
