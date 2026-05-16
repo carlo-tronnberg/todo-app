@@ -166,4 +166,78 @@ describe('Shares Routes', () => {
     })
     expect(afterRes.json()).toEqual([])
   })
+
+  describe('recipient leaves a shared list', () => {
+    let leaveListId: string
+    let leaveShareId: string
+    let strangerToken: string
+
+    beforeAll(async () => {
+      // Owner creates a fresh list and shares it with the other user
+      const listRes = await app.inject({
+        method: 'POST',
+        url: '/api/lists',
+        headers: ownerAuth(),
+        payload: { title: 'List To Leave' },
+      })
+      leaveListId = listRes.json().id
+
+      const shareRes = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${leaveListId}/shares`,
+        headers: ownerAuth(),
+        payload: { email: otherEmail },
+      })
+      leaveShareId = shareRes.json().id
+
+      // Register a third "stranger" user with no access to this list
+      const uid = `${Date.now()}stranger`
+      const strangerRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `stranger+${uid}@example.com`,
+          username: `stranger${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      strangerToken = strangerRes.json().token
+    })
+
+    it('lets the share recipient remove their own share', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/lists/${leaveListId}/shares/${leaveShareId}`,
+        headers: otherAuth(),
+      })
+      expect(res.statusCode).toBe(204)
+
+      // After leaving, the list no longer appears for the recipient
+      const listsRes = await app.inject({
+        method: 'GET',
+        url: '/api/lists',
+        headers: otherAuth(),
+      })
+      const lists = listsRes.json()
+      expect(lists.some((l: { id: string }) => l.id === leaveListId)).toBe(false)
+    })
+
+    it('still rejects a stranger trying to remove someone else’s share', async () => {
+      // Re-share so we have a fresh share to attempt to delete
+      const reShareRes = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${leaveListId}/shares`,
+        headers: ownerAuth(),
+        payload: { email: otherEmail },
+      })
+      const reShareId = reShareRes.json().id
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/lists/${leaveListId}/shares/${reShareId}`,
+        headers: { authorization: `Bearer ${strangerToken}` },
+      })
+      expect(res.statusCode).toBe(403)
+    })
+  })
 })

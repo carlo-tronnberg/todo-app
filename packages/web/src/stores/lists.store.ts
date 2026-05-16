@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { listsApi } from '../api/lists.api'
+import { sharesApi } from '../api/shares.api'
 import type { TodoList } from '../types'
 
 export const useListsStore = defineStore('lists', () => {
@@ -46,5 +47,11 @@ export const useListsStore = defineStore('lists', () => {
     lists.value = lists.value.filter((l) => l.id !== id)
   }
 
-  return { lists, loading, error, fetchLists, createList, updateList, deleteList }
+  /** Remove the current user's own share from a list shared with them. */
+  async function leaveList(listId: string, shareId: string) {
+    await sharesApi.remove(listId, shareId)
+    lists.value = lists.value.filter((l) => l.id !== listId)
+  }
+
+  return { lists, loading, error, fetchLists, createList, updateList, deleteList, leaveList }
 })

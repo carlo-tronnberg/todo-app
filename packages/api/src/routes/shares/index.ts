@@ -151,13 +151,30 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
   )
 
   // DELETE /api/lists/:listId/shares/:shareId — remove a share
+  // Allowed: list owner, share admin, or the share recipient themselves.
   app.delete<{ Params: { listId: string; shareId: string } }>(
     '/:listId/shares/:shareId',
     auth,
     async (request, reply) => {
+      const [share] = await app.db
+        .select()
+        .from(listShares)
+        .where(
+          and(
+            eq(listShares.id, request.params.shareId),
+            eq(listShares.listId, request.params.listId)
+          )
+        )
+        .limit(1)
+      if (!share) return reply.notFound()
+
       const delRole = await getShareRole(app.db, request.params.listId, request.user.sub)
-      if (delRole !== 'owner' && delRole !== 'admin') {
-        return reply.forbidden('Only owners and admins can manage shares')
+      const isManager = delRole === 'owner' || delRole === 'admin'
+      const isSelfRemoval = share.sharedWithUserId === request.user.sub
+      if (!isManager && !isSelfRemoval) {
+        return reply.forbidden(
+          'Only the list owner, admins, or the share recipient can remove a share'
+        )
       }
 
       await app.db.delete(listShares).where(eq(listShares.id, request.params.shareId))

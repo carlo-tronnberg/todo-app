@@ -92,6 +92,14 @@
           >
             🗑 Delete
           </button>
+          <button
+            v-if="canLeaveList(list)"
+            class="card-action-btn card-action-btn--danger"
+            title="Leave list"
+            @click.stop="openLeave(list)"
+          >
+            🚪 Leave
+          </button>
         </div>
       </div>
     </div>
@@ -222,6 +230,23 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Leave Confirmation Modal ─────────────────────────────── -->
+    <div v-if="showLeaveModal && leavingList" class="modal-backdrop">
+      <div class="modal modal--narrow card" role="dialog" aria-modal="true" aria-label="Leave List">
+        <div class="delete-icon">🚪</div>
+        <h2>Leave "{{ leavingList.title }}"?</h2>
+        <p class="delete-warning">
+          You will no longer see this list. The owner can re-share it with you later.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" @click="closeModals">Cancel</button>
+          <button class="btn btn-danger" :disabled="leaving" @click="handleLeaveList">
+            {{ leaving ? 'Leaving…' : 'Leave' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -251,6 +276,16 @@
     return myRoleForList(list) === 'owner'
   }
 
+  function canLeaveList(list: TodoList): boolean {
+    // I can leave if I'm a share recipient (not the owner)
+    if (list.userId === auth.user?.id) return false
+    return !!list.shares?.some((s) => s.user.id === auth.user?.id)
+  }
+
+  function myShareIdForList(list: TodoList): string | null {
+    return list.shares?.find((s) => s.user.id === auth.user?.id)?.id ?? null
+  }
+
   const sortedLists = computed(() =>
     [...listsStore.lists].sort((a, b) => a.title.localeCompare(b.title))
   )
@@ -259,10 +294,13 @@
   const showCreateModal = ref(false)
   const showEditModal = ref(false)
   const showDeleteModal = ref(false)
+  const showLeaveModal = ref(false)
 
   const editingList = ref<TodoList | null>(null)
   const deletingList = ref<TodoList | null>(null)
+  const leavingList = ref<TodoList | null>(null)
   const deleting = ref(false)
+  const leaving = ref(false)
 
   const form = ref({ title: '', description: '', defaultCurrency: '', icon: '' })
 
@@ -282,7 +320,12 @@
   }
 
   useEscapeKey(() => {
-    if (showDeleteModal.value || showEditModal.value || showCreateModal.value) {
+    if (
+      showDeleteModal.value ||
+      showEditModal.value ||
+      showCreateModal.value ||
+      showLeaveModal.value
+    ) {
       closeModals()
     }
   })
@@ -291,9 +334,12 @@
     showCreateModal.value = false
     showEditModal.value = false
     showDeleteModal.value = false
+    showLeaveModal.value = false
     editingList.value = null
     deletingList.value = null
+    leavingList.value = null
     deleting.value = false
+    leaving.value = false
     form.value = { title: '', description: '', defaultCurrency: '', icon: '' }
   }
 
@@ -319,6 +365,11 @@
   function openDelete(list: TodoList) {
     deletingList.value = list
     showDeleteModal.value = true
+  }
+
+  function openLeave(list: TodoList) {
+    leavingList.value = list
+    showLeaveModal.value = true
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────
@@ -352,6 +403,22 @@
       closeModals()
     } finally {
       deleting.value = false
+    }
+  }
+
+  async function handleLeaveList() {
+    if (!leavingList.value) return
+    const shareId = myShareIdForList(leavingList.value)
+    if (!shareId) {
+      closeModals()
+      return
+    }
+    leaving.value = true
+    try {
+      await listsStore.leaveList(leavingList.value.id, shareId)
+      closeModals()
+    } finally {
+      leaving.value = false
     }
   }
 </script>

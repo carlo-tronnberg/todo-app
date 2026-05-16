@@ -6,7 +6,7 @@ import DashboardView from '../../../src/views/DashboardView.vue'
 import { useListsStore } from '../../../src/stores/lists.store'
 import { useAuthStore } from '../../../src/stores/auth.store'
 
-const { mockListsApi } = vi.hoisted(() => ({
+const { mockListsApi, mockSharesApi } = vi.hoisted(() => ({
   mockListsApi: {
     getAll: vi.fn(),
     create: vi.fn(),
@@ -16,9 +16,16 @@ const { mockListsApi } = vi.hoisted(() => ({
     getItems: vi.fn(),
     createItem: vi.fn(),
   },
+  mockSharesApi: {
+    getAll: vi.fn(),
+    create: vi.fn(),
+    updateRole: vi.fn(),
+    remove: vi.fn(),
+  },
 }))
 
 vi.mock('../../../src/api/lists.api', () => ({ listsApi: mockListsApi }))
+vi.mock('../../../src/api/shares.api', () => ({ sharesApi: mockSharesApi }))
 
 function fakeList(id: string, title = 'My List') {
   return { id, userId: 'u1', title, createdAt: '2024-01-01', updatedAt: '2024-01-01' }
@@ -298,5 +305,148 @@ describe('DashboardView', () => {
     // Open edit modal for an existing list, then close it and verify no extra API call
     // We test the guard by verifying update is not called when no editingList
     expect(mockListsApi.update).not.toHaveBeenCalled()
+  })
+
+  // ── Leave shared list ──────────────────────────────────────────────────────
+  describe('leave shared list', () => {
+    function sharedListForRecipient(id: string, title: string, shareId: string) {
+      return {
+        ...fakeList(id, title),
+        userId: 'other-user',
+        owner: {
+          id: 'other-user',
+          email: 'owner@example.com',
+          username: 'owner',
+          firstName: 'Owner',
+          lastName: null,
+          avatarUrl: null,
+        },
+        shares: [
+          {
+            id: shareId,
+            role: 'editor',
+            createdAt: '2024-01-01',
+            user: {
+              id: 'u1',
+              email: 'u1@example.com',
+              username: 'u1',
+              firstName: null,
+              lastName: null,
+              avatarUrl: null,
+            },
+          },
+        ],
+      }
+    }
+
+    it('shows Leave button on shared lists and not on owned lists', async () => {
+      mockListsApi.getAll.mockResolvedValue([
+        fakeList('owned1', 'My Own'),
+        sharedListForRecipient('shared1', 'Team Tasks', 'share-1'),
+      ])
+      const { wrapper } = mountDashboard()
+      await flushPromises()
+
+      const leaveButtons = wrapper.findAll('[title="Leave list"]')
+      expect(leaveButtons.length).toBe(1)
+
+      // Owned list has Delete but not Leave
+      const cards = wrapper.findAll('.list-card')
+      const ownedCard = cards.find((c) => c.text().includes('My Own'))!
+      expect(ownedCard.find('[title="Delete list"]').exists()).toBe(true)
+      expect(ownedCard.find('[title="Leave list"]').exists()).toBe(false)
+
+      // Shared list has Leave but not Delete
+      const sharedCard = cards.find((c) => c.text().includes('Team Tasks'))!
+      expect(sharedCard.find('[title="Leave list"]').exists()).toBe(true)
+      expect(sharedCard.find('[title="Delete list"]').exists()).toBe(false)
+    })
+
+    it('opens Leave confirmation modal and removes the share', async () => {
+      mockListsApi.getAll.mockResolvedValue([
+        sharedListForRecipient('shared1', 'Team Tasks', 'share-1'),
+      ])
+      mockSharesApi.remove.mockResolvedValue(undefined)
+      const { wrapper } = mountDashboard()
+      await flushPromises()
+
+      await wrapper.find('[title="Leave list"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.text()).toContain('Leave "Team Tasks"')
+
+      const confirmBtn = wrapper.find('.modal-actions .btn-danger')
+      await confirmBtn.trigger('click')
+      await flushPromises()
+
+      expect(mockSharesApi.remove).toHaveBeenCalledWith('shared1', 'share-1')
+
+      // List is removed from the store
+      const store = useListsStore()
+      expect(store.lists.find((l) => l.id === 'shared1')).toBeUndefined()
+    })
+
+    it('cancels leaving when Cancel is clicked', async () => {
+      mockListsApi.getAll.mockResolvedValue([
+        sharedListForRecipient('shared1', 'Team Tasks', 'share-1'),
+      ])
+      const { wrapper } = mountDashboard()
+      await flushPromises()
+
+      await wrapper.find('[title="Leave list"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.text()).toContain('Leave "Team Tasks"')
+
+      await wrapper.find('.modal-actions .btn-secondary').trigger('click')
+      await flushPromises()
+
+      expect(mockSharesApi.remove).not.toHaveBeenCalled()
+      // Modal is closed
+      expect(wrapper.text()).not.toContain('Leave "Team Tasks"')
+    })
+
+    it('closes the leave modal on Escape', async () => {
+      mockListsApi.getAll.mockResolvedValue([
+        sharedListForRecipient('shared1', 'Team Tasks', 'share-1'),
+      ])
+      const { wrapper } = mountDashboard()
+      await flushPromises()
+
+      await wrapper.find('[title="Leave list"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.modal').exists()).toBe(true)
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await flushPromises()
+
+      expect(wrapper.find('.modal').exists()).toBe(false)
+    })
+
+    it('handleLeaveList no-ops when the share is missing (guard branch)', async () => {
+      // List where my user id is not in shares — defensive guard
+      const orphan = {
+        ...fakeList('orphan1', 'Orphan'),
+        userId: 'other-user',
+        shares: [
+          {
+            id: 'share-x',
+            role: 'editor',
+            createdAt: '2024-01-01',
+            user: {
+              id: 'other-user-2', // not me (u1)
+              email: 'other2@example.com',
+              username: 'o2',
+              firstName: null,
+              lastName: null,
+              avatarUrl: null,
+            },
+          },
+        ],
+      }
+      mockListsApi.getAll.mockResolvedValue([orphan])
+      const { wrapper } = mountDashboard()
+      await flushPromises()
+      // Leave button should not appear because the user isn't in the shares
+      expect(wrapper.find('[title="Leave list"]').exists()).toBe(false)
+    })
   })
 })
