@@ -159,6 +159,48 @@ export class TodoWorld extends World {
     return this.apiPost(`/api/items/${item.id}/comments`, { content })
   }
 
+  /** Register a separate "owner" user via API, have them create a list,
+   *  and share it with the currently-logged-in user. Does not change
+   *  the current user's token. */
+  async receiveSharedListFromAnotherUser(listTitle: string, role: string) {
+    if (!this.token || !this.currentEmail) {
+      throw new Error('Must be logged in before receiving a shared list')
+    }
+    const recipientEmail = this.currentEmail
+
+    const suffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`
+    const ownerEmail = `owner+${suffix}@example.com`
+    const ownerUsername = `owner${suffix}`
+
+    const regRes = await fetch(`${this.apiUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: ownerEmail,
+        username: ownerUsername,
+        password: 'SecurePass123',
+      }),
+    })
+    const ownerData = await regRes.json()
+    const ownerToken = ownerData.token
+
+    const listRes = await fetch(`${this.apiUrl}/api/lists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ title: listTitle }),
+    })
+    const listData = await listRes.json()
+
+    await fetch(`${this.apiUrl}/api/lists/${listData.id}/shares`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ email: recipientEmail, role }),
+    })
+
+    this.lists.set(listTitle, { id: listData.id, title: listData.title })
+    return { listId: listData.id, ownerEmail, ownerToken }
+  }
+
   /** Get the stored list by title. */
   getList(title: string) {
     const list = this.lists.get(title)
