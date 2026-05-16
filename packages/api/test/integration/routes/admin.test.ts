@@ -138,4 +138,105 @@ describe('Admin Routes', () => {
     // Cleanup
     await app.db.delete(todoLists).where(eq(todoLists.id, list.id))
   })
+
+  describe('System admin manages shares on another user’s list', () => {
+    let otherUserToken: string
+    let otherListId: string
+    let thirdUserEmail: string
+    let thirdUserId: string
+
+    beforeAll(async () => {
+      const uid = `${Date.now()}adminshares`
+
+      // Register "other user" — owner of the list we'll administer
+      const otherRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: `other+${uid}@example.com`,
+          username: `other${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      otherUserToken = otherRes.json().token
+
+      // Register "third user" — someone the admin will share the list with
+      thirdUserEmail = `third+${uid}@example.com`
+      const thirdRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email: thirdUserEmail,
+          username: `third${uid}`,
+          password: 'SecurePass123',
+        },
+      })
+      thirdUserId = thirdRes.json().user.id
+
+      // Other user creates a list
+      const listRes = await app.inject({
+        method: 'POST',
+        url: '/api/lists',
+        headers: { authorization: `Bearer ${otherUserToken}` },
+        payload: { title: 'Other User List' },
+      })
+      otherListId = listRes.json().id
+    })
+
+    it('admin can share a list they do not own', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${otherListId}/shares`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { email: thirdUserEmail, role: 'editor' },
+      })
+      expect(res.statusCode).toBe(201)
+      expect(res.json().user.id).toBe(thirdUserId)
+      expect(res.json().role).toBe('editor')
+    })
+
+    it('admin can update a share role on a list they do not own', async () => {
+      const sharesRes = await app.inject({
+        method: 'GET',
+        url: `/api/lists/${otherListId}/shares`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      })
+      const shareId = sharesRes.json()[0].id
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/lists/${otherListId}/shares/${shareId}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { role: 'viewer' },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.json().role).toBe('viewer')
+    })
+
+    it('admin can remove a share on a list they do not own', async () => {
+      const sharesRes = await app.inject({
+        method: 'GET',
+        url: `/api/lists/${otherListId}/shares`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      })
+      const shareId = sharesRes.json()[0].id
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/lists/${otherListId}/shares/${shareId}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      })
+      expect(res.statusCode).toBe(204)
+    })
+
+    it('non-admin without ownership or share-admin role still gets 403', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/lists/${otherListId}/shares`,
+        headers: { authorization: `Bearer ${regularToken}` },
+        payload: { email: thirdUserEmail, role: 'editor' },
+      })
+      expect(res.statusCode).toBe(403)
+    })
+  })
 })

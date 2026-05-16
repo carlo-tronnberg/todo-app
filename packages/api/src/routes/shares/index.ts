@@ -2,6 +2,16 @@ import { FastifyPluginAsync } from 'fastify'
 import { eq, and } from 'drizzle-orm'
 import { Database, listShares, users, todoLists } from '../../db'
 
+/** Check if a user has the system-wide admin flag. */
+async function isSystemAdmin(db: Database, userId: string): Promise<boolean> {
+  const [u] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  return !!u?.isAdmin
+}
+
 export interface ShareInfo {
   id: string
   role: string
@@ -21,8 +31,10 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /api/lists/:listId/shares — list all shares for a list
   app.get<{ Params: { listId: string } }>('/:listId/shares', auth, async (request, reply) => {
-    // Verify the user owns the list or is shared with
-    const hasAccess = await verifyListAccess(app.db, request.params.listId, request.user.sub)
+    // Verify the user owns the list, has a share on it, or is a system admin
+    const hasAccess =
+      (await verifyListAccess(app.db, request.params.listId, request.user.sub)) ||
+      (await isSystemAdmin(app.db, request.user.sub))
     if (!hasAccess) return reply.notFound()
 
     const shares = await app.db
@@ -65,9 +77,10 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
     const query = (request.body?.emailOrUsername ?? request.body?.email ?? '').trim()
     if (!query) return reply.badRequest('email or username is required')
 
-    // Must be owner or admin to share
+    // Must be owner, share-admin, or a system admin to share
     const shareRole = await getShareRole(app.db, request.params.listId, request.user.sub)
-    if (shareRole !== 'owner' && shareRole !== 'admin') {
+    const isSysAdmin = await isSystemAdmin(app.db, request.user.sub)
+    if (shareRole !== 'owner' && shareRole !== 'admin' && !isSysAdmin) {
       return reply.forbidden('Only owners and admins can share lists')
     }
 
@@ -131,7 +144,8 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
     auth,
     async (request, reply) => {
       const patchRole = await getShareRole(app.db, request.params.listId, request.user.sub)
-      if (patchRole !== 'owner' && patchRole !== 'admin') {
+      const isSysAdmin = await isSystemAdmin(app.db, request.user.sub)
+      if (patchRole !== 'owner' && patchRole !== 'admin' && !isSysAdmin) {
         return reply.forbidden('Only owners and admins can manage shares')
       }
 
@@ -171,7 +185,8 @@ export const sharesRoutes: FastifyPluginAsync = async (app) => {
       const delRole = await getShareRole(app.db, request.params.listId, request.user.sub)
       const isManager = delRole === 'owner' || delRole === 'admin'
       const isSelfRemoval = share.sharedWithUserId === request.user.sub
-      if (!isManager && !isSelfRemoval) {
+      const isSysAdmin = await isSystemAdmin(app.db, request.user.sub)
+      if (!isManager && !isSelfRemoval && !isSysAdmin) {
         return reply.forbidden(
           'Only the list owner, admins, or the share recipient can remove a share'
         )
